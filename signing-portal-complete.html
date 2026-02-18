@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cost Approval Portal - Signatory</title>
+<style>
+* {margin:0; padding:0; box-sizing:border-box;}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #0d3b52 0%, #1a5f4d 100%);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #f8f9fa;
+  min-height: 100vh;
+  box-shadow: 0 0 30px rgba(0,0,0,0.3);
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #0d3b52 0%, #1a5f4d 100%);
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.3);
+}
+
+.logo {height: 38px; width: auto;}
+
+.header-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.settings-btn {
+  background: #1a4d6d;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border: 2px solid white;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.settings-btn:hover {background: #2c5f7d;}
+
+/* Settings Dropdown - FIXED */
+.settings-menu {
+  display: none;
+  position: fixed;
+  top: 80px;
+  right: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  z-index: 10000;
+  width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.settings-menu.active {display: block;}
+
+.settings-header {
+  background: #1a4d6d;
+  color: white;
+  padding: 20px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-radius: 12px 12px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.settings-body {padding: 24px;}
+
+.settings-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.settings-section:last-child {border-bottom: none;}
+
+.settings-section h4 {
+  color: #1a4d6d;
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Signature Preview in Settings */
+.sig-preview {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  background: #f9f9f9;
+}
+
+.sig-preview.has-sig {
+  border-style: solid;
+  border-color: #10b981;
+  background: white;
+}
+
+.sig-preview img {
+  max-width: 100%;
+  max-height: 70px;
+}
+
+.sig-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-create {
+  background: #3b82f6;
+  color: white;
+  flex: 1;
+}
+
+.btn-create:hover {background: #2563eb;}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  flex: 1;
+}
+
+.btn-danger:hover {background: #dc2626;}
+
+.login-input, .security-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.login-input:focus, .security-input:focus {
+  outline: none;
+  border-color: #1a4d6d;
+}
+
+/* Search Bar */
+.search-filter-bar {
+  background: #f9fafb;
+  padding: 20px 40px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.search-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 300px;
+  padding: 12px 20px;
+  border: 2px solid #1a4d6d;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2c5f7d;
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.filter-select {
+  padding: 10px 16px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+}
+
+/* Forms List */
+.forms-list {padding: 20px 40px;}
+
+/* Period Sections */
+.period-section {margin-bottom: 30px;}
+
+.period-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a4d6d;
+  padding: 12px 0;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 16px;
+}
+
+.folder-header {
+  cursor: pointer;
+  background: #f9fafb;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.folder-header:hover {
+  background: #f0f3f8;
+  border-color: #1a4d6d;
+}
+
+.toggle-icon {
+  float: right;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.folder-content {
+  margin-top: 16px;
+  padding-left: 20px;
+}
+
+.forms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.hidden-forms {margin-top: 16px;}
+
+.show-more-container {
+  margin: 16px 0;
+  text-align: center;
+}
+
+.show-more-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.show-more-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.forms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.forms-header h2 {
+  font-size: 1.1rem;
+  color: #0d3b52;
+  font-weight: 600;
+}
+
+.forms-count {
+  font-size: 0.8rem;
+  color: #666;
+  background: #e5e7eb;
+  padding: 5px 12px;
+  border-radius: 16px;
+}
+
+.form-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-card:hover {
+  border-color: #1a5f4d;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.form-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.form-number {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0d3b52;
+}
+  font-weight: 700;
+  color: #1a4d6d;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-signed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-concern {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.form-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.meta-item {font-size: 0.85rem;}
+
+.meta-label {
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.meta-value {
+  color: #111;
+  font-weight: 600;
+}
+
+.impact-value {
+  color: #dc2626;
+  font-size: 1.1rem;
+}
+
+/* PDF Viewer */
+.pdf-viewer {
+  padding: 30px 40px;
+  background: #f9f9f9;
+  overflow-y: auto;
+}
+
+.pdf-page {
+  background: white;
+  padding: 40px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  font-family: 'Times New Roman', serif;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pdf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid #222;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.pdf-header img {height: 40px;}
+
+.pdf-header h2 {
+  font-size: 1.2rem;
+  color: #222;
+  margin: 0;
+}
+
+.pdf-row {
+  display: flex;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.pdf-row b {
+  min-width: 180px;
+  color: #444;
+}
+
+.pdf-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 4px;
+  margin: 16px 0 10px;
+  text-transform: uppercase;
+  color: #333;
+}
+
+.pdf-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  margin: 12px 0;
+}
+
+.pdf-tbl th, .pdf-tbl td {
+  border: 1px solid #bbb;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.pdf-tbl th {
+  background: #f0f3f8;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: #333;
+}
+
+.pdf-tbl td.num {text-align: right;}
+
+/* Signature Zone */
+.pdf-sig-zone {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pdf-sig-box {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sig-line {
+  flex: 1;
+  border-bottom: 2px solid #222;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2px;
+  min-height: 60px;
+}
+
+.sig-line img {
+  max-width: 100%;
+  max-height: 55px;
+}
+
+.sig-ph {
+  color: #ccc;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.sig-lbl {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.sig-nm {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.signature-highlight {
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {background: transparent;}
+  50% {background: rgba(16, 185, 129, 0.2);}
+}
+
+.pdf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #ddd;
+}
+
+.pdf-footer span {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+/* Bottom Actions */
+.bottom-actions {
+  padding: 20px 40px;
+  background: #f5f5f5;
+  border-top: 2px solid #ddd;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  position: sticky;
+  bottom: 0;
+}
+
+.btn-action {
+  padding: 14px 36px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-concern {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.btn-concern:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.btn-back {
+  background: #6b7280;
+  color: white;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+}
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 20000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {display: flex;}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {margin-bottom: 16px;}
+
+.modal-content textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Signature Canvas Modal */
+.sig-canvas-wrap {
+  border: 3px dashed #1a4d6d;
+  border-radius: 8px;
+  background: #f9f9f9;
+  margin: 20px 0;
+}
+
+#sigCanvas {
+  display: block;
+  cursor: crosshair;
+  background: white;
+  width: 100%;
+}
+
+.btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ghost {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-ghost:hover {background: #d1d5db;}
+
+.success-screen {
+  text-align: center;
+  padding: 60px 40px;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-radius: 12px;
+  margin: 40px;
+}
+
+.success-icon {
+  font-size: 5rem;
+  margin-bottom: 20px;
+}
+
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.no-results-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .header, .search-filter-bar, .forms-list, .pdf-viewer, .bottom-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .settings-menu {
+    right: 20px;
+    width: calc(100% - 40px);
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="mainContainer">
+  <div style="text-align:center; padding:100px 40px; color:#6b7280;">
+    <div style="font-size:3rem; margin-bottom:20px;">⏳</div>
+    <h2 style="color:#111827;">Loading Portal...</h2>
+  </div>
+</div>
+
+<script>
+
+// API Configuration
+const API_URL = 'tkei-psm-api-production.up.railway.app';  // Replace with your Railway URL
+
+// TKE Logo
+var tkeLogo = 'data:image/png;base64,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';
+
+// Global state
+var currentView = 'list';
+var currentFormId = null;
+var userSignature = null;
+var ctx = null;
+var drawing = false;
+var searchQuery = '';
+var sortBy = 'impact';
+var filterStatus = 'all';
+
+// Current user
+var currentUser = {
+  name: 'Mr. Pratul Bhasker',
+  email: 'pratul@company.com',
+  role: 'Purchase Manager',
+  password: 'secure123'
+};
+
+// Sample forms
+var allForms = [
+  {
+    id: 1001,
+    formNo: 1001,
+    date: '2026-02-03',
+    category: 'ELECTRICAL',
+    vendor: 'Shanghai Zhongling Electronics',
+    vendorCode: '3010453056',
+    quarterlyImpact: 4230.00,
+    status: 'pending',
+    signerRole: 'Checked By',
+    items: [
+      {id: 1, fsCode: '7530001072', itemCode: '7530001072', desc: 'POWER SUPPLY BOARD', newPrice: 2110.00, oldPrice: 0, yearlyVol: 11},
+      {id: 2, fsCode: '7140006103', itemCode: '7140006103', desc: 'BOARD CONN CABLE', newPrice: 0, oldPrice: 0, yearlyVol: 0}
+    ]
+  },
+  {
+    id: 1002,
+    formNo: 1002,
+    date: '2026-01-28',
+    category: 'MECHANICAL',
+    vendor: 'Delhi Parts Manufacturing',
+    vendorCode: '3010453057',
+    quarterlyImpact: 8950.00,
+    status: 'pending',
+    signerRole: 'Approved By',
+    items: [
+      {id: 1, fsCode: '7530001073', itemCode: '7530001073', desc: 'HYDRAULIC PUMP ASSEMBLY', newPrice: 5600.00, oldPrice: 4200, yearlyVol: 8},
+      {id: 2, fsCode: '7530001074', itemCode: '7530001074', desc: 'MOTOR BRACKET', newPrice: 890.00, oldPrice: 750, yearlyVol: 12}
+    ]
+  },
+  {
+    id: 1003,
+    formNo: 1003,
+    date: '2026-02-01',
+    category: 'ELECTRICAL',
+    vendor: 'Mumbai Electronics Ltd',
+    vendorCode: '3010453058',
+    quarterlyImpact: 2150.00,
+    status: 'signed',
+    signerRole: 'Checked By',
+    items: [
+      {id: 1, fsCode: '7530001075', itemCode: '7530001075', desc: 'CONTROL PANEL SWITCH', newPrice: 450.00, oldPrice: 400, yearlyVol: 20}
+    ]
+  }
+];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  // Load saved signature
+  if (localStorage.getItem('userSignature')) {
+    userSignature = localStorage.getItem('userSignature');
+  }
+  
+  // Check URL for token
+  var urlParams = new URLSearchParams(window.location.search);
+  var token = urlParams.get('token');
+  
+  if (token) {
+    var match = token.match(/form(\d+)_/);
+    if (match) {
+      currentFormId = parseInt(match[1]);
+      currentView = 'detail';
+    }
+  }
+  
+  render();
+});
+
+function render() {
+  var container = document.getElementById('mainContainer');
+  if (!container) return;
+  
+  var html = '';
+  if (currentView === 'list') {
+    html = renderFormsList();
+  } else {
+    html = renderFormDetail();
+  }
+  
+  container.innerHTML = html;
+  
+  // Bind events after rendering
+  if (currentView === 'list') {
+    bindListEvents();
+  } else {
+    bindDetailEvents();
+  }
+}
+
+function renderFormsList() {
+  var filtered = filterForms(allForms);
+  var sorted = sortForms(filtered);
+  
+  var html = '';
+  
+  // Header
+  html += '<div class="header">';
+  html += '<img src="' + tkeLogo + '" alt="TKE Logo" class="logo"/>';
+  html += '<h1 class="header-title" style="font-size:1.1rem; line-height:1.3;">TK Elevator (PSM - Chakan)<br><span style="font-size:0.85rem; font-weight:400; opacity:0.9;">Cost Approval Portal</span></h1>';
+  html += '<button class="settings-btn" id="settingsBtn">⚙️ Settings</button>';
+  html += renderSettingsMenu();
+  html += '</div>';
+  
+  // Search Bar
+  html += '<div class="search-filter-bar">';
+  html += '<div class="search-container">';
+  html += '<input type="text" class="search-input" id="searchInput" placeholder="🔍 Search by Item Code, Description, Vendor, or Date..." value="' + searchQuery + '"/>';
+  html += '</div>';
+  html += '<div class="filter-group">';
+  html += '<span class="filter-label">Sort by:</span>';
+  html += '<select class="filter-select" id="sortSelect">';
+  html += '<option value="impact"' + (sortBy === 'impact' ? ' selected' : '') + '>Quarterly Impact (High to Low)</option>';
+  html += '<option value="date"' + (sortBy === 'date' ? ' selected' : '') + '>Date (Newest First)</option>';
+  html += '<option value="vendor"' + (sortBy === 'vendor' ? ' selected' : '') + '>Vendor (A-Z)</option>';
+  html += '<option value="formNo"' + (sortBy === 'formNo' ? ' selected' : '') + '>Form Number</option>';
+  html += '</select>';
+  html += '<span class="filter-label" style="margin-left:16px;">Status:</span>';
+  html += '<select class="filter-select" id="filterSelect">';
+  html += '<option value="all"' + (filterStatus === 'all' ? ' selected' : '') + '>All Forms</option>';
+  html += '<option value="pending"' + (filterStatus === 'pending' ? ' selected' : '') + '>Pending Only</option>';
+  html += '<option value="signed"' + (filterStatus === 'signed' ? ' selected' : '') + '>Signed Only</option>';
+  html += '</select>';
+  html += '</div>';
+  html += '</div>';
+  
+  // Forms List with Smart Folders
+  html += '<div class="forms-list">';
+  html += '<div class="forms-header">';
+  html += '<h2>📋 Approval Forms</h2>';
+  html += '<span class="forms-count">' + sorted.length + ' form' + (sorted.length !== 1 ? 's' : '') + '</span>';
+  html += '</div>';
+  
+  if (sorted.length === 0) {
+    html += '<div class="no-results">';
+    html += '<div class="no-results-icon">🔍</div>';
+    html += '<h3>No forms found</h3>';
+    html += '<p>Try adjusting your search or filters</p>';
+    html += '</div>';
+  } else {
+    // Organize forms by time periods
+    html += renderOrganizedForms(sorted);
+  }
+  
+  html += '</div>';
+  
+  return html;
+}
+
+// Organize forms into time-based folders
+function renderOrganizedForms(forms) {
+  var html = '';
+  var now = new Date();
+  var currentYear = now.getFullYear();
+  var currentMonth = now.getMonth();
+  
+  var organized = {
+    thisMonth: [],
+    lastMonth: [],
+    quarters: {},
+    years: {}
+  };
+  
+  // Categorize forms
+  forms.forEach(function(form) {
+    var formDate = new Date(form.date);
+    var formYear = formDate.getFullYear();
+    var formMonth = formDate.getMonth();
+    var formQuarter = Math.floor(formMonth / 3);
+    
+    // This month
+    if (formYear === currentYear && formMonth === currentMonth) {
+      organized.thisMonth.push(form);
+    }
+    // Last month
+    else if (
+      (formYear === currentYear && formMonth === currentMonth - 1) ||
+      (currentMonth === 0 && formYear === currentYear - 1 && formMonth === 11)
+    ) {
+      organized.lastMonth.push(form);
+    }
+    // Current year but not recent months - group by quarter
+    else if (formYear === currentYear) {
+      var qKey = 'Q' + (formQuarter + 1);
+      if (!organized.quarters[qKey]) {
+        organized.quarters[qKey] = { quarter: formQuarter + 1, forms: [] };
+      }
+      organized.quarters[qKey].forms.push(form);
+    }
+    // Previous years
+    else {
+      if (!organized.years[formYear]) {
+        organized.years[formYear] = [];
+      }
+      organized.years[formYear].push(form);
+    }
+  });
+  
+  // Render This Month (max 15 visible, rest collapsed)
+  if (organized.thisMonth.length > 0) {
+    var monthName = now.toLocaleString('en-US', { month: 'long' });
+    html += '<div class="period-section">';
+    html += '<h3 class="period-header">📅 THIS MONTH (' + monthName + ' ' + currentYear + ') - ' + organized.thisMonth.length + ' forms</h3>';
+    html += renderPeriodForms(organized.thisMonth, 'this-month', 15);
+    html += '</div>';
+  }
+  
+  // Render Last Month (max 15 visible, rest collapsed)
+  if (organized.lastMonth.length > 0) {
+    var lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
+    var lastMonthName = lastMonthDate.toLocaleString('en-US', { month: 'long' });
+    var lastMonthYear = lastMonthDate.getFullYear();
+    html += '<div class="period-section">';
+    html += '<h3 class="period-header">📅 LAST MONTH (' + lastMonthName + ' ' + lastMonthYear + ') - ' + organized.lastMonth.length + ' forms</h3>';
+    html += renderPeriodForms(organized.lastMonth, 'last-month', 15);
+    html += '</div>';
+  }
+  
+  // Render Quarters (collapsed by default)
+  var quarterKeys = Object.keys(organized.quarters).sort().reverse();
+  quarterKeys.forEach(function(qKey) {
+    var qData = organized.quarters[qKey];
+    var quarterNames = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'];
+    html += '<div class="period-section">';
+    html += '<h3 class="period-header folder-header" onclick="toggleFolder(\'q-' + qKey + '\')">';
+    html += '📁 ' + quarterNames[qData.quarter - 1] + ' ' + currentYear + ' - ' + qData.forms.length + ' forms ';
+    html += '<span class="toggle-icon" id="toggle-q-' + qKey + '">▼</span>';
+    html += '</h3>';
+    html += '<div class="folder-content" id="q-' + qKey + '" style="display:none;">';
+    html += renderPeriodForms(qData.forms, 'q-' + qKey, 999); // Show all when expanded
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  // Render Previous Years (collapsed by default)
+  var yearKeys = Object.keys(organized.years).sort().reverse();
+  yearKeys.forEach(function(year) {
+    var yearForms = organized.years[year];
+    html += '<div class="period-section">';
+    html += '<h3 class="period-header folder-header" onclick="toggleFolder(\'y-' + year + '\')">';
+    html += '📁 ' + year + ' - ' + yearForms.length + ' forms ';
+    html += '<span class="toggle-icon" id="toggle-y-' + year + '">▼</span>';
+    html += '</h3>';
+    html += '<div class="folder-content" id="y-' + year + '" style="display:none;">';
+    html += renderPeriodForms(yearForms, 'y-' + year, 999); // Show all when expanded
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  return html;
+}
+
+// Render forms for a period with "show more" functionality
+function renderPeriodForms(forms, periodId, maxVisible) {
+  var html = '<div class="forms-grid">';
+  
+  var visibleForms = forms.slice(0, maxVisible);
+  var hiddenForms = forms.slice(maxVisible);
+  
+  // Render visible forms
+  visibleForms.forEach(function(form) {
+    html += renderFormCard(form);
+  });
+  
+  html += '</div>';
+  
+  // Show "View More" button if there are hidden forms
+  if (hiddenForms.length > 0) {
+    html += '<div class="show-more-container">';
+    html += '<button class="show-more-btn" onclick="toggleMore(\'' + periodId + '\')" id="more-btn-' + periodId + '">';
+    html += '▼ Show ' + hiddenForms.length + ' More Forms';
+    html += '</button>';
+    html += '<div class="forms-grid hidden-forms" id="more-' + periodId + '" style="display:none;">';
+    hiddenForms.forEach(function(form) {
+      html += renderFormCard(form);
+    });
+    html += '</div>';
+    html += '</div>';
+  }
+  
+  return html;
+}
+
+// Render individual form card
+function renderFormCard(form) {
+  var html = '';
+  html += '<div class="form-card" data-form-id="' + form.id + '">';
+  html += '<div class="form-card-header">';
+  html += '<div class="form-number">Form #' + form.formNo + '</div>';
+  html += '<span class="status-badge status-' + form.status + '">';
+  if (form.status === 'signed') {
+    html += '✓ Signed';
+  } else if (form.status === 'concern') {
+    html += '⚠️ Concern Raised';
+  } else {
+    html += '⏳ Pending';
+  }
+  html += '</span>';
+  html += '</div>';
+  
+  html += '<div class="form-meta">';
+  html += '<div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">' + form.date + '</div></div>';
+  html += '<div class="meta-item"><div class="meta-label">Category</div><div class="meta-value">' + form.category + '</div></div>';
+  html += '<div class="meta-item"><div class="meta-label">Vendor</div><div class="meta-value">' + form.vendor + '</div></div>';
+  html += '<div class="meta-item"><div class="meta-label">Quarterly Impact</div><div class="meta-value impact-value">₹' + form.quarterlyImpact.toFixed(2) + '</div></div>';
+  html += '</div>';
+  
+  html += '<div style="margin-top:12px; font-size:0.85rem; color:#666;">';
+  html += '<strong>Your Role:</strong> ' + form.signerRole + ' | ';
+  html += '<strong>Items:</strong> ' + form.items.length;
+  html += '</div>';
+  html += '</div>';
+  
+  return html;
+}
+
+// Toggle folder expand/collapse
+function toggleFolder(folderId) {
+  var content = document.getElementById(folderId);
+  var toggle = document.getElementById('toggle-' + folderId);
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+// Toggle "show more" forms
+function toggleMore(periodId) {
+  var moreSection = document.getElementById('more-' + periodId);
+  var btn = document.getElementById('more-btn-' + periodId);
+  
+  if (moreSection.style.display === 'none') {
+    moreSection.style.display = 'grid';
+    btn.textContent = '▲ Show Less';
+  } else {
+    moreSection.style.display = 'none';
+    var hiddenCount = moreSection.children.length;
+    btn.textContent = '▼ Show ' + hiddenCount + ' More Forms';
+  }
+}
+
+function renderSettingsMenu() {
+  var html = '<div class="settings-menu" id="settingsMenu">';
+  html += '<div class="settings-header">⚙️ Settings & Profile</div>';
+  html += '<div class="settings-body">';
+  
+  // Signature Section
+  html += '<div class="settings-section">';
+  html += '<h4>📝 Your Signature</h4>';
+  html += '<div class="sig-preview' + (userSignature ? ' has-sig' : '') + '" id="sigPreview">';
+  if (userSignature) {
+    html += '<img src="' + userSignature + '" alt="Signature"/>';
+  } else {
+    html += '<span style="color: #999; font-size: 0.85rem;">No signature created</span>';
+  }
+  html += '</div>';
+  html += '<div class="sig-buttons">';
+  html += '<button class="btn-small btn-create" id="createSigBtn">✍️ ' + (userSignature ? 'Re-create' : 'Create New') + '</button>';
+  if (userSignature) {
+    html += '<button class="btn-small btn-danger" id="deleteSigBtn">🗑️ Delete</button>';
+  }
+  html += '</div>';
+  html += '<p style="font-size:0.75rem; color:#666; margin-top:10px;">Signature stored securely (< 5KB)</p>';
+  html += '</div>';
+  
+  // Profile
+  html += '<div class="settings-section">';
+  html += '<h4>👤 Profile</h4>';
+  html += '<div style="font-size:0.85rem; line-height:1.8;">';
+  html += '<div><strong>Name:</strong> ' + currentUser.name + '</div>';
+  html += '<div><strong>Email:</strong> ' + currentUser.email + '</div>';
+  html += '<div><strong>Role:</strong> ' + currentUser.role + '</div>';
+  html += '</div>';
+  html += '</div>';
+  
+  // Security
+  html += '<div class="settings-section">';
+  html += '<h4>🔐 Security</h4>';
+  html += '<button class="btn-small btn-create" id="changePasswordBtn" style="width:100%; margin-bottom:10px;">🔑 Change Password</button>';
+  html += '<button class="btn-small" id="enable2FABtn" style="width:100%; background:#6b7280; color:white;">🛡️ Enable 2FA</button>';
+  html += '<p style="font-size:0.75rem; color:#666; margin-top:10px;">Last login: ' + new Date().toLocaleString() + '</p>';
+  html += '</div>';
+  
+  html += '</div></div>';
+  return html;
+}
+
+function filterForms(forms) {
+  var query = searchQuery.toLowerCase();
+  
+  return forms.filter(function(form) {
+    if (filterStatus !== 'all' && form.status !== filterStatus) {
+      return false;
+    }
+    
+    if (query) {
+      var matchVendor = form.vendor.toLowerCase().indexOf(query) !== -1;
+      var matchVendorCode = form.vendorCode.toLowerCase().indexOf(query) !== -1;
+      var matchDate = form.date.indexOf(query) !== -1;
+      var matchFormNo = form.formNo.toString().indexOf(query) !== -1;
+      var matchCategory = form.category.toLowerCase().indexOf(query) !== -1;
+      
+      var matchItems = form.items.some(function(item) {
+        return item.itemCode.toLowerCase().indexOf(query) !== -1 || 
+               item.desc.toLowerCase().indexOf(query) !== -1;
+      });
+      
+      return matchVendor || matchVendorCode || matchDate || matchFormNo || matchCategory || matchItems;
+    }
+    
+    return true;
+  });
+}
+
+function sortForms(forms) {
+  var sorted = forms.slice();
+  
+  sorted.sort(function(a, b) {
+    switch(sortBy) {
+      case 'impact':
+        return b.quarterlyImpact - a.quarterlyImpact;
+      case 'date':
+        return new Date(b.date) - new Date(a.date);
+      case 'vendor':
+        return a.vendor.localeCompare(b.vendor);
+      case 'formNo':
+        return b.formNo - a.formNo;
+      default:
+        return 0;
+    }
+  });
+  
+  return sorted;
+}
+
+function bindListEvents() {
+  // Settings button
+  var settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.onclick = function(e) {
+      e.stopPropagation();
+      var menu = document.getElementById('settingsMenu');
+      menu.classList.toggle('active');
+    };
+  }
+  
+  // Close settings when clicking outside
+  document.onclick = function(e) {
+    var menu = document.getElementById('settingsMenu');
+    var btn = document.getElementById('settingsBtn');
+    if (menu && !menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('active');
+    }
+  };
+  
+  // Settings actions
+  bindSettingsActions();
+  
+  // Search - maintain focus while typing
+  var searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.oninput = function() {
+      var cursorPosition = this.selectionStart;
+      searchQuery = this.value;
+      render();
+      
+      // Restore focus and cursor position after render
+      var self = this;
+      setTimeout(function() {
+        var newSearchInput = document.getElementById('searchInput');
+        if (newSearchInput) {
+          newSearchInput.focus();
+          newSearchInput.setSelectionRange(cursorPosition, cursorPosition);
+        }
+      }, 0);
+    };
+  }
+  
+  // Sort
+  var sortSelect = document.getElementById('sortSelect');
+  if (sortSelect) {
+    sortSelect.onchange = function() {
+      sortBy = this.value;
+      render();
+    };
+  }
+  
+  // Filter
+  var filterSelect = document.getElementById('filterSelect');
+  if (filterSelect) {
+    filterSelect.onchange = function() {
+      filterStatus = this.value;
+      render();
+    };
+  }
+  
+  // Form cards
+  document.querySelectorAll('.form-card').forEach(function(card) {
+    card.onclick = function() {
+      currentFormId = parseInt(this.getAttribute('data-form-id'));
+      currentView = 'detail';
+      render();
+      window.scrollTo(0, 0);
+    };
+  });
+}
+
+function bindSettingsActions() {
+  // Create signature
+  var createBtn = document.getElementById('createSigBtn');
+  if (createBtn) {
+    createBtn.onclick = function(e) {
+      e.stopPropagation();
+      openSignatureModal();
+    };
+  }
+  
+  // Delete signature
+  var deleteBtn = document.getElementById('deleteSigBtn');
+  if (deleteBtn) {
+    deleteBtn.onclick = function(e) {
+      e.stopPropagation();
+      if (confirm('Delete your saved signature?')) {
+        userSignature = null;
+        localStorage.removeItem('userSignature');
+        render();
+      }
+    };
+  }
+  
+  // Change password
+  var changePwBtn = document.getElementById('changePasswordBtn');
+  if (changePwBtn) {
+    changePwBtn.onclick = function(e) {
+      e.stopPropagation();
+      openChangePasswordModal();
+    };
+  }
+  
+  // Enable 2FA
+  var enable2FABtn = document.getElementById('enable2FABtn');
+  if (enable2FABtn) {
+    enable2FABtn.onclick = function(e) {
+      e.stopPropagation();
+      open2FAModal();
+    };
+  }
+}
+
+function renderFormDetail() {
+  var form = allForms.find(function(f) { return f.id === currentFormId; });
+  if (!form) {
+    currentView = 'list';
+    render();
+    return;
+  }
+  
+  // Calculate totals
+  var total = 0;
+  form.items.forEach(function(it) {
+    it.diff = it.newPrice - it.oldPrice;
+    it.impact = it.diff * it.yearlyVol;
+    total += it.diff;
+  });
+  
+  var html = '';
+  
+  // Header
+  html += '<div class="header">';
+  html += '<img src="' + tkeLogo + '" alt="TKE Logo" class="logo"/>';
+  html += '<h1 class="header-title" style="font-size:1.1rem; line-height:1.3;">TK Elevator (PSM - Chakan)<br><span style="font-size:0.85rem; font-weight:400; opacity:0.9;">Cost Approval Portal</span></h1>';
+  html += '<button class="settings-btn" id="settingsBtn">⚙️ Settings</button>';
+  html += renderSettingsMenu();
+  html += '</div>';
+  
+  // PDF Viewer
+  html += '<div class="pdf-viewer">';
+  
+  // PDF PAGE 1
+  html += '<div class="pdf-page">';
+  html += '<div class="pdf-header">';
+  html += '<img src="' + tkeLogo + '" alt="TKE"/>';
+  html += '<h2>Cost Approval Form</h2>';
+  html += '<div style="width:30px"></div>';
+  html += '</div>';
+  
+  html += '<div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#666;margin-bottom:10px;">';
+  html += '<span>Form No.: <b>' + form.formNo + '</b></span>';
+  html += '<span>Date: <b>' + form.date + '</b></span>';
+  html += '</div>';
+  
+  html += '<div class="pdf-row"><b>Initiated By</b><span>Name: Mr. Pratul Bhasker | Category: ' + form.category + ' | Dept: PSM</span></div>';
+  html += '<div class="pdf-section-title">Reason of Change</div>';
+  html += '<div style="font-size:0.75rem; padding: 8px 0;">✓ RM Increase &nbsp;&nbsp; ✓ New Part</div>';
+  html += '<div class="pdf-row"><b>Supplier</b><span>' + form.vendorCode + ' — ' + form.vendor + '</span></div>';
+  html += '<div class="pdf-row"><b>Details of Change</b><span>NEW ITEMS</span></div>';
+  html += '<div class="pdf-row"><b>Product Line Impacted</b><span>All</span></div>';
+  
+  html += '<div style="display:flex;gap:22px;font-size:0.8rem;margin:10px 0;">';
+  html += '<div><b>Cost Impact per Lift:</b> ' + total.toFixed(2) + '</div>';
+  html += '<div><b>Quarterly Impact:</b> <span style="color:#c0392b;font-weight:700;">' + form.quarterlyImpact.toFixed(2) + '</span> INR</div>';
+  html += '</div>';
+  
+  html += '<div class="pdf-section-title">Cost Impact Analysis</div>';
+  html += '<table class="pdf-tbl"><thead><tr>';
+  html += '<th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th>';
+  html += '<th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th>';
+  html += '</tr></thead><tbody>';
+  
+  form.items.slice(0, 2).forEach(function(it) {
+    html += '<tr>';
+    html += '<td>—</td><td>—</td>';
+    html += '<td>' + it.itemCode + '</td>';
+    html += '<td style="max-width:150px;">' + it.desc + '</td>';
+    html += '<td class="num">' + it.oldPrice.toFixed(2) + '</td>';
+    html += '<td class="num">' + it.newPrice.toFixed(2) + '</td>';
+    html += '<td class="num" style="color:' + (it.diff >= 0 ? '#c0392b' : '#27ae60') + ';">' + it.diff.toFixed(2) + '</td>';
+    html += '<td class="num">1</td>';
+    html += '<td class="num" style="color:' + (it.diff >= 0 ? '#c0392b' : '#27ae60') + ';">' + it.diff.toFixed(2) + '</td>';
+    html += '</tr>';
+  });
+  
+  html += '<tr style="background:#f0f3f8;font-weight:700;">';
+  html += '<td colspan="8" style="text-align:right;">Total</td>';
+  html += '<td class="num" style="color:' + (total >= 0 ? '#c0392b' : '#27ae60') + ';">' + total.toFixed(2) + '</td>';
+  html += '</tr>';
+  html += '</tbody></table>';
+  
+  html += '<div style="font-size:0.65rem;color:#999;text-align:right;margin-top:4px;">All Costs are in INR</div>';
+  
+  // Signature Zone
+  html += '<div class="pdf-sig-zone">';
+  var sigs = [
+    {id: 1, label: 'Prepared By', name: 'Sohail Shaikh', hasSig: true},
+    {id: 2, label: 'Checked By', name: currentUser.name, hasSig: form.status === 'signed'},
+    {id: 3, label: 'Approved By', name: 'VP Purchase', hasSig: false},
+    {id: 4, label: 'Approved By', name: 'Finance Controller', hasSig: false}
+  ];
+  
+  sigs.forEach(function(sig) {
+    var isCurrentUser = sig.id === 2;
+    var highlight = isCurrentUser && form.status === 'signed' ? ' signature-highlight' : '';
+    html += '<div class="pdf-sig-box' + highlight + '">';
+    html += '<div class="sig-line">';
+    if (sig.hasSig && userSignature && isCurrentUser) {
+      html += '<img src="' + userSignature + '" alt="Signature"/>';
+    } else if (sig.hasSig && !isCurrentUser) {
+      html += '<div style="font-style:italic;color:#666;font-size:0.9rem;">Signature</div>';
+    } else {
+      html += '<span class="sig-ph">Signature</span>';
+    }
+    html += '</div>';
+    html += '<div class="sig-lbl">' + sig.label + '</div>';
+    html += '<div class="sig-nm">' + sig.name + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  
+  html += '<div class="pdf-footer"><span>All amounts in Indian Rupees</span></div>';
+  html += '</div>'; // End PDF Page 1
+  
+  // PDF PAGE 2
+  html += '<div class="pdf-page" style="margin-top:30px;">';
+  html += '<div class="pdf-header">';
+  html += '<img src="' + tkeLogo + '" alt="TKE"/>';
+  html += '<h2>Annexure — Item Price Details</h2>';
+  html += '<div style="width:30px"></div>';
+  html += '</div>';
+  
+  html += '<div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#666;margin-bottom:10px;">';
+  html += '<span>Form No.: <b>' + form.formNo + '</b></span>';
+  html += '<span>Date: <b>' + form.date + '</b></span>';
+  html += '</div>';
+  
+  html += '<div class="pdf-row"><b>Vendor Code</b><span>' + form.vendorCode + '</span></div>';
+  html += '<div class="pdf-row"><b>Vendor Name</b><span>' + form.vendor + '</span></div>';
+  
+  html += '<table class="pdf-tbl" style="margin-top:14px;"><thead><tr>';
+  html += '<th>#</th><th>FS Code</th><th>Item Code</th><th>Description</th>';
+  html += '<th>New Price</th><th>Old Price</th><th>Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Impact</th>';
+  html += '</tr></thead><tbody>';
+  
+  var totalImpact = 0;
+  form.items.forEach(function(it, i) {
+    totalImpact += it.impact;
+    var pctDiff = it.oldPrice ? ((it.diff / it.oldPrice) * 100).toFixed(2) + '%' : '—';
+    html += '<tr>';
+    html += '<td>' + (i + 1) + '</td>';
+    html += '<td>' + it.fsCode + '</td>';
+    html += '<td>' + it.itemCode + '</td>';
+    html += '<td>' + it.desc + '</td>';
+    html += '<td class="num">' + it.newPrice.toFixed(2) + '</td>';
+    html += '<td class="num">' + it.oldPrice.toFixed(2) + '</td>';
+    html += '<td class="num" style="color:' + (it.diff >= 0 ? '#c0392b' : '#27ae60') + ';">' + it.diff.toFixed(2) + '</td>';
+    html += '<td class="num">' + pctDiff + '</td>';
+    html += '<td class="num">' + it.yearlyVol + '</td>';
+    html += '<td class="num" style="color:' + (it.impact >= 0 ? '#c0392b' : '#27ae60') + ';">' + it.impact.toFixed(2) + '</td>';
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table>';
+  
+  html += '<div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:10px;font-size:0.8rem;gap:4px;">';
+  html += '<div style="border-top:2px solid #222;padding-top:6px;"><b>Total Yearly Impact:</b> <span style="color:#c0392b;font-weight:700;">' + totalImpact.toFixed(2) + '</span> INR</div>';
+  html += '<div><b>Quarterly Impact:</b> <span style="color:#c0392b;font-weight:700;">' + form.quarterlyImpact.toFixed(2) + '</span> INR</div>';
+  html += '</div>';
+  
+  html += '<div class="pdf-footer"><span>All amounts in Indian Rupees</span></div>';
+  html += '</div>'; // End PDF Page 2
+  
+  html += '</div>'; // End PDF Viewer
+  
+  // Bottom Actions
+  if (form.status === 'pending') {
+    html += '<div class="bottom-actions">';
+    html += '<button class="btn-action btn-back" id="backBtn">← Back to List</button>';
+    html += '<button class="btn-action btn-submit" id="submitBtn" style="background:#10b981; color:white; font-weight:600;">✓ Submit Signature</button>';
+    html += '<button class="btn-action btn-concern" id="concernBtn" style="background:#f59e0b; color:white; font-weight:600;">⚠️ Raise Concern</button>';
+    html += '</div>';
+  } else {
+    html += '<div class="bottom-actions">';
+    html += '<button class="btn-action btn-back" id="backBtn">← Back to List</button>';
+    html += '<div style="background:#d1fae5; color:#065f46; padding:12px 24px; border-radius:8px; font-weight:600;">✓ Already Signed</div>';
+    html += '</div>';
+  }
+  
+  return html;
+}
+
+function bindDetailEvents() {
+  // Settings
+  var settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.onclick = function(e) {
+      e.stopPropagation();
+      document.getElementById('settingsMenu').classList.toggle('active');
+    };
+  }
+  
+  document.onclick = function(e) {
+    var menu = document.getElementById('settingsMenu');
+    var btn = document.getElementById('settingsBtn');
+    if (menu && !menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('active');
+    }
+  };
+  
+  bindSettingsActions();
+  
+  // Back button
+  var backBtn = document.getElementById('backBtn');
+  if (backBtn) {
+    backBtn.onclick = function() {
+      currentView = 'list';
+      render();
+    };
+  }
+  
+  // Submit
+  var submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) {
+    submitBtn.onclick = function() {
+      if (!userSignature) {
+        if (confirm('You need to create a signature first. Would you like to create one now?')) {
+          openSignatureModal();
+        }
+        return;
+      }
+      
+      var form = allForms.find(function(f) { return f.id === currentFormId; });
+      if (form) {
+        form.status = 'signed';
+        console.log('Signature submitted for Form #' + form.formNo);
+        showSuccess();
+      }
+    };
+  }
+  
+  // Concern
+  var concernBtn = document.getElementById('concernBtn');
+  if (concernBtn) {
+    concernBtn.onclick = function() {
+      openConcernModal();
+    };
+  }
+}
+
+// Signature Modal
+function openSignatureModal() {
+  var modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = '<div class="modal-content" onclick="event.stopPropagation()">' +
+    '<h2 style="color:#1a4d6d;">✍️ Draw Your Signature</h2>' +
+    '<p style="color:#666; margin-bottom:16px;">Sign below using your mouse or finger</p>' +
+    '<div class="sig-canvas-wrap">' +
+    '<canvas id="sigCanvas" width="600" height="200"></canvas>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-ghost" id="clearBtn">🗑️ Clear</button>' +
+    '<button class="btn btn-create" id="saveBtn" style="flex:1;">💾 Save Signature</button>' +
+    '<button class="btn btn-ghost" id="cancelBtn">Cancel</button>' +
+    '</div>' +
+    '</div>';
+  
+  document.body.appendChild(modal);
+  
+  modal.onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('cancelBtn').onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('clearBtn').onclick = function() {
+    if (ctx) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  };
+  
+  document.getElementById('saveBtn').onclick = function() {
+    var canvas = document.getElementById('sigCanvas');
+    userSignature = canvas.toDataURL('image/png');
+    localStorage.setItem('userSignature', userSignature);
+    document.body.removeChild(modal);
+    render();
+  };
+  
+  setTimeout(initCanvas, 100);
+}
+
+function initCanvas() {
+  var canvas = document.getElementById('sigCanvas');
+  if (!canvas) return;
+  
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = 200;
+  
+  ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#1a4d6d';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  function getPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    var y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: x, y: y };
+  }
+  
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    var pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+  
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+  
+  function stop(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    drawing = false;
+  }
+  
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', stop, { passive: false });
+}
+
+// Concern Modal
+function openConcernModal() {
+  var modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = '<div class="modal-content" onclick="event.stopPropagation()">' +
+    '<h2 style="color:#ea580c;">⚠️ Raise a Concern</h2>' +
+    '<p style="color:#666; margin-bottom:16px;">Please describe your concern about this approval:</p>' +
+    '<textarea id="concernText" placeholder="Enter your concern (minimum 10 characters)..."></textarea>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-ghost" id="cancelConcernBtn" style="flex:1;">Cancel</button>' +
+    '<button class="btn btn-create" id="submitConcernBtn" style="flex:1; background:#f97316;">Submit Concern</button>' +
+    '</div>' +
+    '</div>';
+  
+  document.body.appendChild(modal);
+  
+  modal.onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('cancelConcernBtn').onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('submitConcernBtn').onclick = function() {
+    var concern = document.getElementById('concernText').value.trim();
+    if (concern.length < 10) {
+      alert('Please enter at least 10 characters');
+      return;
+    }
+    
+    // Update form status to 'concern'
+    var form = allForms.find(function(f) { return f.id === currentFormId; });
+    if (form) {
+      form.status = 'concern';
+      form.concernText = concern;
+    }
+    
+    console.log('Concern submitted:', concern);
+    document.body.removeChild(modal);
+    showConcernSuccess(concern);
+  };
+}
+
+function showConcernSuccess(concern) {
+  var html = '<div style="text-align:center; padding:60px 40px; background:linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); border-radius:12px; margin:40px;">';
+  html += '<div style="font-size:5rem; margin-bottom:20px;">⚠️</div>';
+  html += '<h1 style="color:#ea580c; margin-bottom:16px;">Concern Raised</h1>';
+  html += '<p style="color:#374151; font-size:1.1rem; margin-bottom:24px;">Your concern has been recorded and the admin has been notified.</p>';
+  html += '<div style="background:white; border:2px solid #f97316; border-radius:8px; padding:20px; text-align:left; max-width:600px; margin:0 auto 32px;">';
+  html += '<strong style="color:#ea580c;">Your Concern:</strong>';
+  html += '<p style="color:#374151; margin-top:12px;">' + concern + '</p>';
+  html += '</div>';
+  html += '<button class="btn-action btn-back" id="backBtn2">← Back to Forms List</button>';
+  html += '</div>';
+  
+  document.getElementById('mainContainer').innerHTML = html;
+  
+  document.getElementById('backBtn2').onclick = function() {
+    currentView = 'list';
+    render();
+  };
+}
+
+// Change Password Modal
+function openChangePasswordModal() {
+  var modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = '<div class="modal-content" onclick="event.stopPropagation()">' +
+    '<h2 style="color:#1a4d6d;">🔑 Change Password</h2>' +
+    '<p style="color:#666; margin-bottom:20px;">Enter your current password and choose a new one</p>' +
+    '<input type="password" class="security-input" id="currentPw" placeholder="Current password"/>' +
+    '<input type="password" class="security-input" id="newPw" placeholder="New password (min 8 chars)"/>' +
+    '<div id="pwStrength" style="font-size:0.8rem; color:#666; margin-bottom:10px;"></div>' +
+    '<input type="password" class="security-input" id="confirmPw" placeholder="Confirm new password"/>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-ghost" id="cancelPwBtn" style="flex:1;">Cancel</button>' +
+    '<button class="btn btn-create" id="updatePwBtn" style="flex:1;">Update Password</button>' +
+    '</div>' +
+    '</div>';
+  
+  document.body.appendChild(modal);
+  
+  modal.onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('cancelPwBtn').onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('newPw').oninput = function() {
+    var pw = this.value;
+    var strength = 0;
+    if (pw.length >= 8) strength++;
+    if (pw.length >= 12) strength++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) strength++;
+    if (/\d/.test(pw)) strength++;
+    if (/[^a-zA-Z0-9]/.test(pw)) strength++;
+    
+    var label = strength < 2 ? 'Weak ●○○○' : strength < 3 ? 'Medium ●●○○' : strength < 4 ? 'Good ●●●○' : 'Strong ●●●●';
+    var color = strength < 2 ? '#ef4444' : strength < 3 ? '#f97316' : strength < 4 ? '#eab308' : '#10b981';
+    document.getElementById('pwStrength').innerHTML = '<span style="color:' + color + ';">' + label + '</span>';
+  };
+  
+  document.getElementById('updatePwBtn').onclick = function() {
+    var current = document.getElementById('currentPw').value;
+    var newPw = document.getElementById('newPw').value;
+    var confirm = document.getElementById('confirmPw').value;
+    
+    if (!current || !newPw || !confirm) {
+      alert('Please fill all fields');
+      return;
+    }
+    
+    if (current !== currentUser.password) {
+      alert('Current password is incorrect');
+      return;
+    }
+    
+    if (newPw.length < 8) {
+      alert('New password must be at least 8 characters');
+      return;
+    }
+    
+    if (newPw !== confirm) {
+      alert('Passwords do not match');
+      return;
+    }
+    
+    currentUser.password = newPw;
+    document.body.removeChild(modal);
+    alert('✓ Password updated successfully!');
+  };
+}
+
+// 2FA Modal
+function open2FAModal() {
+  var modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = '<div class="modal-content" onclick="event.stopPropagation()">' +
+    '<h2 style="color:#1a4d6d;">🛡️ Two-Factor Authentication</h2>' +
+    '<p style="color:#666; margin-bottom:20px;">Add an extra layer of security to your account</p>' +
+    '<div style="background:#f9fafb; border-radius:8px; padding:20px; margin-bottom:20px;">' +
+    '<h4 style="margin-bottom:12px;">Step 1: Scan QR Code</h4>' +
+    '<div style="text-align:center; padding:20px;">' +
+    '<div style="width:150px; height:150px; background:white; border:2px solid #ddd; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:#999;">[QR CODE]<br/>Demo</div>' +
+    '</div>' +
+    '</div>' +
+    '<div style="background:#f9fafb; border-radius:8px; padding:20px; margin-bottom:20px;">' +
+    '<h4 style="margin-bottom:12px;">Step 2: Save Backup Codes</h4>' +
+    '<div style="background:white; border:1px solid #ddd; border-radius:4px; padding:12px; font-family:monospace; font-size:0.85rem;">' +
+    '• 1234-5678-9012<br/>• 3456-7890-1234<br/>• 5678-9012-3456<br/>• 7890-1234-5678' +
+    '</div>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-ghost" id="cancel2FABtn" style="flex:1;">Cancel</button>' +
+    '<button class="btn btn-create" id="enable2FABtn2" style="flex:1;">Enable 2FA</button>' +
+    '</div>' +
+    '</div>';
+  
+  document.body.appendChild(modal);
+  
+  modal.onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('cancel2FABtn').onclick = function() {
+    document.body.removeChild(modal);
+  };
+  
+  document.getElementById('enable2FABtn2').onclick = function() {
+    document.body.removeChild(modal);
+    alert('✓ Two-factor authentication enabled!\n\nYou will need to enter a code from your authenticator app on your next login.');
+  };
+}
+
+// Success Screen
+function showSuccess() {
+  var html = '<div class="success-screen">';
+  html += '<div class="success-icon">✅</div>';
+  html += '<h1 style="color:#059669; margin-bottom:16px;">Signature Submitted Successfully!</h1>';
+  html += '<p style="color:#374151; font-size:1.1rem;">Your signature has been recorded for Form #' + currentFormId + '</p>';
+  html += '<p style="color:#6b7280; margin-top:24px;">The admin has been notified. The next signatory will receive an email shortly.</p>';
+  html += '<button class="btn-action btn-back" id="backBtn3" style="margin-top:32px;">← Back to Forms List</button>';
+  html += '</div>';
+  
+  document.getElementById('mainContainer').innerHTML = html;
+  
+  document.getElementById('backBtn3').onclick = function() {
+    currentView = 'list';
+    render();
+  };
+}
+
+// Initialize portal on page load
+window.onload = function() {
+  render();
+};
+</script>
+
+</body>
+</html>

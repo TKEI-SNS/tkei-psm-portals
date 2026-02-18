@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cost Approval Portal — Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0f1117;--surface:#161822;--card:#1c1f2e;--card-h:#232740;
+  --accent:#4f8aff;--accent-h:#6da3ff;--accent-dim:rgba(79,138,255,0.12);
+  --green:#34d399;--green-dim:rgba(52,211,153,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --text:#e2e4ea;--text-dim:#8a8d9e;--text-xs:#5c5f72;
+  --border:rgba(255,255,255,0.06);--radius:10px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+html{font-size:15px;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.sidebar-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sidebar-brand img{height:30px;width:auto;}
+.sidebar-brand div h1{font-size:.95rem;font-weight:700;color:#fff;}
+.sidebar-brand div span{font-size:.7rem;color:var(--text-xs);display:block;}
+.sidebar nav{flex:1;padding:10px 12px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--text-dim);font-size:.87rem;transition:background .15s,color .15s;}
+.nav-item:hover{background:var(--card);}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);font-weight:600;}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:.65rem;padding:1px 7px;border-radius:10px;font-weight:700;}
+.main{flex:1;overflow-x:auto;background:var(--bg);}
+.topbar{height:56px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;position:sticky;top:0;z-index:10;}
+.topbar-left h2{font-size:1.05rem;font-weight:700;color:#fff;}
+.topbar-left span{font-size:.75rem;color:var(--text-xs);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff;cursor:pointer;}
+.content{padding:24px 28px;max-width:1200px;}
+/* cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-head h3{font-size:.93rem;font-weight:600;color:#fff;}
+.card-body{padding:20px;}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:7px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-h);}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border);}.btn-ghost:hover{background:var(--card-h);color:var(--text);}
+.btn-green{background:var(--green);color:#0f1117;}.btn-green:hover{background:#2dd4a0;}
+.btn-sm{padding:5px 12px;font-size:.77rem;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+/* inputs */
+.input{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.84rem;width:100%;transition:border .15s;}
+.input:focus{outline:none;border-color:var(--accent);}
+.input::placeholder{color:var(--text-xs);}
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8d9e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+label{font-size:.78rem;color:var(--text-dim);margin-bottom:4px;display:block;}
+/* table */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+thead{background:var(--card-h);}
+th{padding:9px 10px;text-align:left;color:var(--text-xs);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+td input[type=number]{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:.78rem;width:90px;}
+td input[type=number]:focus{outline:none;border-color:var(--accent);}
+.num{text-align:right;}
+.tbl-summary{display:flex;gap:24px;justify-content:flex-end;padding:10px 12px;background:var(--card-h);border-top:1px solid var(--border);flex-wrap:wrap;}
+.tbl-summary div{font-size:.76rem;color:var(--text-dim);}
+.tbl-summary strong{color:var(--text);margin-left:6px;}
+/* metadata checkboxes */
+.meta-grid{display:flex;gap:16px;flex-wrap:wrap;}
+.meta-col{flex:1;min-width:175px;background:var(--surface);border-radius:8px;padding:14px 16px;}
+.meta-col-label{font-size:.68rem;color:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.meta-col-label .dot{width:7px;height:7px;border-radius:50%;}
+.chk-list{display:flex;flex-direction:column;gap:6px;}
+.chk-row{display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 0;}
+.chk-row:hover{opacity:.85;}
+.chk-box{width:16px;height:16px;border-radius:3px;border:2px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;}
+.chk-box.on{background:var(--accent);border-color:var(--accent);}
+.chk-box.on::after{content:'\2713';color:#fff;font-size:.65rem;font-weight:700;}
+.chk-row span{font-size:.8rem;color:var(--text-dim);}
+/* category pills */
+.cat-pills{display:flex;gap:6px;}
+.cat-pill{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.cat-pill:hover{border-color:var(--accent-h);color:var(--text);}
+.cat-pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+/* PDF page */
+.pdf-page{background:#fff;color:#222;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:860px;margin:0 auto;padding:26px 32px 22px;font-family:'Times New Roman',serif;}
+.pdf-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:3px solid #222;}
+.pdf-header img{height:30px;width:auto;}
+.pdf-header h2{font-size:1.05rem;text-align:center;flex:1;margin:0;}
+.pdf-section-title{font-size:.79rem;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:3px;margin:11px 0 6px;text-transform:uppercase;letter-spacing:.02em;}
+.pdf-row{display:flex;font-size:.74rem;padding:3px 0;border-bottom:1px solid #eee;}
+.pdf-row b{min-width:120px;color:#444;}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:.69rem;margin:6px 0;}
+.pdf-tbl th,.pdf-tbl td{border:1px solid #bbb;padding:3px 6px;text-align:left;}
+.pdf-tbl th{background:#f0f3f8;font-weight:700;font-size:.65rem;text-transform:uppercase;}
+.pdf-tbl td.num{text-align:right;}
+/* PDF sig zone */
+.pdf-sig-zone{display:flex;margin-top:16px;gap:8px;}
+.pdf-sig-box{flex:1;text-align:center;}
+.pdf-sig-box .sig-line{height:42px;border-bottom:1.5px solid #222;margin-bottom:3px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;}
+.pdf-sig-box .sig-line img{max-height:38px;max-width:96%;object-fit:contain;}
+.pdf-sig-box .sig-line .sig-ph{color:#bbb;font-size:.6rem;font-style:italic;padding-bottom:3px;}
+.pdf-sig-box .sig-lbl{font-size:.63rem;color:#666;}
+.pdf-sig-box .sig-nm{font-size:.65rem;color:#333;font-weight:700;}
+/* PDF checkbox */
+.pdf-reasons{font-size:.69rem;display:flex;gap:18px;margin:6px 0 10px;flex-wrap:wrap;}
+.pdf-reasons > div{display:flex;flex-direction:column;gap:2px;}
+.pdf-reasons .grp-lbl{font-weight:700;color:#333;font-size:.65rem;text-transform:uppercase;margin-bottom:2px;border-bottom:1px solid #ddd;padding-bottom:2px;}
+.pdf-reasons .chk-line{display:flex;align-items:center;gap:4px;color:#555;}
+.pdf-chk{width:10px;height:10px;border:1.5px solid #888;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;font-size:.54rem;flex-shrink:0;}
+.pdf-chk.on{background:#222;color:#fff;border-color:#222;}
+/* PDF footer */
+.pdf-footer{display:flex;align-items:center;justify-content:flex-end;margin-top:10px;gap:6px;padding-top:5px;border-top:1px solid #eee;}
+.pdf-footer img{height:20px;width:auto;opacity:.85;}
+.pdf-footer span{font-size:.62rem;color:#999;}
+/* signer cards */
+.signer-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.signer-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#fff;flex-shrink:0;}
+.signer-info{flex:1;min-width:0;}
+.signer-info b{font-size:.84rem;color:#fff;display:block;}
+.signer-info span{font-size:.73rem;color:var(--text-xs);}
+.signer-status{font-size:.72rem;padding:3px 10px;border-radius:12px;font-weight:600;white-space:nowrap;}
+.st-pending{background:var(--amber-dim);color:var(--amber);}
+.st-signed{background:var(--green-dim);color:var(--green);}
+.st-waiting{background:var(--card-h);color:var(--text-xs);}
+.drag-handle{color:var(--text-xs);cursor:grab;font-size:1rem;user-select:none;}
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;}
+.modal{background:var(--card);border-radius:14px;width:92%;max-width:580px;box-shadow:var(--shadow);padding:26px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:1rem;font-weight:700;color:#fff;margin-bottom:6px;}
+.modal p{font-size:.82rem;color:var(--text-dim);margin-bottom:12px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+/* signature pad */
+.sig-pad-wrap{border:2px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);}
+.sig-pad-wrap canvas{display:block;background:#fff;cursor:crosshair;}
+.sig-pad-toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-wrap:wrap;}
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#0f1117;padding:12px 22px;border-radius:9px;font-size:.82rem;font-weight:600;box-shadow:var(--shadow);z-index:200;animation:slideUp .25s ease;pointer-events:none;}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+/* upload */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-dim);}
+.drop-zone p{color:var(--text-dim);font-size:.82rem;}
+.drop-zone .icon{font-size:2rem;margin-bottom:6px;}
+.drop-zone input{display:none;}
+/* badges */
+.badge{font-size:.7rem;padding:2px 9px;border-radius:10px;font-weight:600;}
+.badge-blue{background:var(--accent-dim);color:var(--accent);}
+.badge-green{background:var(--green-dim);color:var(--green);}
+/* misc */
+.dim{color:var(--text-xs);font-size:.75rem;}
+.mt{margin-top:12px;}
+.flex-end{display:flex;justify-content:flex-end;gap:10px;}
+.warn-box{background:var(--amber-dim);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:12px 16px;font-size:.8rem;color:var(--amber);margin-bottom:14px;}
+.info-box{background:var(--accent-dim);border:1px solid rgba(79,138,255,.2);border-radius:8px;padding:12px 16px;font-size:.79rem;color:var(--accent);margin-bottom:14px;}
+.form-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+.form-row > div{flex:1;min-width:130px;}
+.mini-label{font-size:.68rem;color:var(--text-xs);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-weight:600;}
+.seq-badge{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.auto-tag{font-size:.63rem;background:var(--green-dim);color:var(--green);padding:2px 7px;border-radius:8px;font-weight:600;margin-left:5px;}
+.setup-grid{display:flex;gap:16px;flex-wrap:wrap;}
+.setup-grid > div{flex:1;min-width:220px;}
+.setup-status{display:flex;align-items:center;gap:6px;font-size:.76rem;margin-top:6px;}
+.setup-status .dot{width:8px;height:8px;border-radius:50%;}
+.dot-ok{background:var(--green);}.dot-miss{background:var(--red);}.dot-warn{background:var(--amber);}
+.inline-sig-thumb{max-height:30px;max-width:96px;object-fit:contain;vertical-align:bottom;}
+</style>
+</head>
+<body>
+<div class="shell" id="app"></div>
+<script>
+
+// API Configuration //
+const API_URL = 'tkei-psm-api-production.up.railway.app';  // Replace with your Railway URL
+
+Const TKE_LOGO='data:image/png;base64,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';
+const INR_LOGO='data:image/png;base64,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';
+const PRICING_OPTIONS=['RM Increase','RM Decrease','Sourcing Increase','Sourcing Decrease','E Auction Increase','E Auction Decrease'];
+const QUALITY_OPTIONS=['Quality-Field Complaint','Quality-Product Improvement','PDC/CE - Product Improvement','PDC/CE - EMI Change'];
+const PARTTYPE_OPTIONS=['New Part','Existing/Old Part','Other'];
+const state={
+  page:'setup',
+  items:[],formNo:1001,vendor:'',vendorCode:'',date:'2026-02-03',
+  productLine:'All',
+  category:'ELECTRICAL',
+  note:'',
+  pricingChecks:[],qualityChecks:[],partTypeChecks:['New Part'],
+  signers:[
+    {id:1,name:'Sohail Shaikh',role:'Prepared By',email:'sohail@company.com',status:'pending',color:'#4f8aff'},
+    {id:2,name:'Mr. Pratul Bhasker',role:'Checked By',email:'pratul@company.com',status:'waiting',color:'#7c3aed',autoSwap:true},
+    {id:3,name:'VP Purchase',role:'Approved By VP Purchase',email:'vp@company.com',status:'waiting',color:'#f59e0b'},
+    {id:4,name:'Finance Controller',role:'Approved By Finance',email:'finance@company.com',status:'waiting',color:'#34d399'},
+  ],
+  adminEmail:'',onedrivePath:'',emailPermission:false,
+  signatures:{},   // signerId → dataURL
+  sigPadFor:null,  // id being drawn or 'admin'
+  saveTo:'',toast:null,modal:null,dragIdx:null,
+  sequential:false
+};
+// ── helpers ──
+function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
+function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
+function calcRow(it){it.priceDiff=(it.newPrice||0)-(it.oldPrice||0);it.pctDiff=it.oldPrice?(it.priceDiff/it.oldPrice)*100:0;it.costImpact=it.priceDiff*(it.yearlyVol||0);}
+function calcTotals(){let ti=0,tv=0,sp=0,cnt=0;state.items.forEach(it=>{calcRow(it);ti+=it.costImpact||0;tv+=it.yearlyVol||0;if(it.oldPrice){sp+=it.pctDiff||0;cnt++;}});return{avgPctDiff:cnt?sp/cnt:0,totalVol:tv,totalImpact:ti,quarterlyImpact:ti/4};}
+function showToast(msg){state.toast=msg;render();setTimeout(()=>{state.toast=null;render();},2600);}
+function toggle(arr,val){const i=arr.indexOf(val);if(i>=0)arr.splice(i,1);else arr.push(val);}
+function applyCategoryToSigners(){
+  const e={name:'Mr. Pratul Bhasker',email:'pratul@company.com',color:'#7c3aed'};
+  const m={name:'Mr. Shivshankar Nandanwar',email:'shivshankar@company.com',color:'#a78bfa'};
+  const p=state.category==='ELECTRICAL'?e:m;
+  const s=state.signers.find(x=>x.autoSwap);
+  if(s){s.name=p.name;s.email=p.email;s.color=p.color;}
+}
+function getCheckedBy(){return state.signers.find(s=>s.autoSwap)||{};}
+// ── XLSX parser ──
+async function unzipEntries(buffer){
+  const u8=new Uint8Array(buffer),dv=new DataView(buffer),entries={};let off=0;
+  while(off<u8.length-4){
+    if(dv.getUint32(off,true)!==0x04034b50)break;
+    const comp=dv.getUint16(off+8,true);let cSize=dv.getUint32(off+18,true);
+    const nLen=dv.getUint16(off+26,true),xLen=dv.getUint16(off+28,true),flags=dv.getUint16(off+6,true);
+    const name=new TextDecoder().decode(u8.slice(off+30,off+30+nLen)),ds=off+30+nLen+xLen;
+    if((flags&0x08)&&cSize===0){let s=ds;while(s<u8.length-4){const v=dv.getUint32(s,true);if(v===0x04034b50||v===0x02014b50)break;s++;}if(s>=ds+12){let d=s-12;if(dv.getUint32(d,true)===0x08074b50)d+=4;cSize=dv.getUint32(d+4,true);}}
+    const raw=u8.slice(ds,ds+cSize);
+    if(comp===0)entries[name]=raw;
+    else if(comp===8){try{const d=new DecompressionStream('deflate-raw'),w=d.writable.getWriter();w.write(raw);w.close();const rd=d.readable.getReader(),ch=[];while(true){const{done,value}=await rd.read();if(done)break;ch.push(value);}const t=ch.reduce((a,c)=>a+c.length,0),o=new Uint8Array(t);let p=0;ch.forEach(c=>{o.set(c,p);p+=c.length;});entries[name]=o;}catch(e){}}
+    off=ds+cSize;if(flags&0x08){off+=(dv.getUint32(off,true)===0x08074b50?16:12);}
+  }
+  return entries;
+}
+function parseSharedStrings(xml){if(!xml)return[];const doc=new DOMParser().parseFromString(xml,'text/xml'),s=[];doc.querySelectorAll('si').forEach(si=>{let t='';si.querySelectorAll('t').forEach(el=>t+=(el.textContent||''));s.push(t);});return s;}
+function colIndex(ref){let c=0;for(let i=0;i<ref.length;i++){const ch=ref.charCodeAt(i);if(ch>=65&&ch<=90)c=c*26+(ch-64);else break;}return c-1;}
+function parseSheet(xml,shared){if(!xml)return[];const doc=new DOMParser().parseFromString(xml,'text/xml'),rows=[];doc.querySelectorAll('row').forEach(rowEl=>{const r=parseInt(rowEl.getAttribute('r'))-1;while(rows.length<=r)rows.push([]);rowEl.querySelectorAll('c').forEach(cEl=>{const ref=cEl.getAttribute('r'),t=cEl.getAttribute('t'),col=colIndex(ref),vEl=cEl.querySelector('v'),isEl=cEl.querySelector('is t');let val='';if(t==='s'&&vEl)val=shared[parseInt(vEl.textContent)]||'';else if(isEl)val=isEl.textContent||'';else if(vEl)val=vEl.textContent||'';while(rows[r].length<=col)rows[r].push('');rows[r][col]=val;});});return rows;}
+async function parseExcel(file){showToast('Parsing…');try{const buffer=await file.arrayBuffer(),entries=await unzipEntries(buffer);let sn=Object.keys(entries).find(k=>/xl\/worksheets\/sheet1\.xml/i.test(k));if(!sn)sn=Object.keys(entries).find(k=>/sheet1/i.test(k));if(!sn){showToast('No sheet1');return;}const shared=parseSharedStrings(new TextDecoder().decode(entries['xl/sharedStrings.xml']||new Uint8Array()));applyParsedData(parseSheet(new TextDecoder().decode(entries[sn]),shared));}catch(e){console.error(e);showToast('Parse error');}}
+function parseCSV(text){applyParsedData(text.split('\n').map(r=>r.split(',').map(c=>c.replace(/^"|"$/g,'').trim())));}
+function applyParsedData(rows){
+  let hIdx=-1;
+  for(let i=0;i<rows.length;i++){if(rows[i].some(c=>String(c).toLowerCase().includes('fs item code'))){hIdx=i;break;}}
+  if(hIdx<0){showToast('No header');return;}
+  for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
+  state.items=[];
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;state.items.push({id:state.items.length,fsItemCode:f,itemCode:String(r[1]||'').trim(),desc:String(r[2]||'').trim(),newPrice:parseFloat(r[3])||0,oldPrice:parseFloat(r[4])||0,yearlyVol:parseFloat(r[7])||0,priceDiff:0,pctDiff:0,costImpact:0});calcRow(state.items[state.items.length-1]);}
+  state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
+  for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
+  applyCategoryToSigners();
+  if(state.items.length){state.page='review';showToast('Loaded — '+state.items.length+' items');}else showToast('No items');
+  render();
+}
+// ── Signature pad ──
+let padCtx=null,padDrawing=false,padHasStroke=false;
+function initPad(){
+  const canvas=document.getElementById('sigCanvas');if(!canvas)return;
+  const rect=canvas.getBoundingClientRect();canvas.width=rect.width;canvas.height=rect.height;
+  padCtx=canvas.getContext('2d');padCtx.clearRect(0,0,canvas.width,canvas.height);
+  padCtx.strokeStyle='#1a1a2e';padCtx.lineWidth=2.2;padCtx.lineCap='round';padCtx.lineJoin='round';
+  padHasStroke=false;padDrawing=false;
+  function gp(e){const r=canvas.getBoundingClientRect();const cx=e.touches?e.touches[0].clientX:e.clientX;const cy=e.touches?e.touches[0].clientY:e.clientY;return{x:cx-r.left,y:cy-r.top};}
+  function start(e){e.preventDefault();padDrawing=true;padHasStroke=true;const p=gp(e);padCtx.beginPath();padCtx.moveTo(p.x,p.y);}
+  function move(e){e.preventDefault();if(!padDrawing)return;const p=gp(e);padCtx.lineTo(p.x,p.y);padCtx.stroke();padCtx.beginPath();padCtx.moveTo(p.x,p.y);}
+  function end(e){e.preventDefault();padDrawing=false;}
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseup',end);canvas.addEventListener('mouseleave',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end,{passive:false});
+}
+function clearPad(){if(padCtx)padCtx.clearRect(0,0,padCtx.canvas.width,padCtx.canvas.height);padHasStroke=false;}
+function savePadSignature(){
+  if(!padHasStroke){showToast('Draw first');return;}
+  const canvas=document.getElementById('sigCanvas');
+  const dataURL=canvas.toDataURL('image/png');
+  const targetId=state.sigPadFor==='admin'?1:state.sigPadFor;
+  state.signatures[targetId]=dataURL;
+  showToast('Signature saved ✓');
+  state.modal=null;render();
+}
+// ── Sign flow ──
+async function sendEnvelope() {
+  console.log('Checking config:', {email: state.adminEmail, permission: state.emailPermission});
+  
+  if(!state.adminEmail || !state.emailPermission) {
+    showToast('⚠️ Configure admin email & grant permission in Setup');
+    setTimeout(() => { state.page = 'setup'; render(); }, 2000);
+    return;
+  }
+  
+  showToast('📧 Sending envelope...');
+  
+  // Mark signers as 'pending' (email sent)
+  if(state.sequential) {
+    // Sequential: only first gets 'pending'
+    if(state.signers[0]) state.signers[0].status = 'pending';
+  } else {
+    // Parallel: all get 'pending'
+    state.signers.forEach(s => { if(s.status === 'waiting') s.status = 'pending'; });
+  }
+  
+  // Simulate email send (in production: call MS Graph )
+  for(const s of state.signers.filter(s => s.status === 'pending')) {
+    const token = `form${state.formNo}_s${s.id}_${Date.now()}`;
+    console.log(`📧 Would email ${s.email} with signing link: signing-portal-final.html?token=${token}`);
+    state.emailedSigners[s.id] = {token, sentAt: new Date().toISOString()};
+  }
+  
+  showToast(`✉️ Envelope sent to ${state.signers.filter(s=>s.status==='pending').length} signatories!`);
+  setTimeout(() => { state.page = 'done'; render(); }, 2000);
+}
+function render(){
+  const app=document.getElementById('app');
+  const navItems=[{id:'setup',label:'Setup',icon:'⚙️'},{id:'upload',label:'Upload',icon:'📂'},{id:'review',label:'Review & Preview',icon:'👁'},{id:'signers',label:'Signatories',icon:'✍'},{id:'send',label:'Send Envelope',icon:'📤'},{id:'done',label:'Complete',icon:'✅'}];
+  const order=['setup','upload','review','signers','send','done'];
+  const curIdx=order.indexOf(state.page);
+  app.innerHTML=`
+  <div class="sidebar">
+    <div class="sidebar-brand"><img src="${TKE_LOGO}" alt="TKE"/><div><h1>CostApproval</h1><span>Admin Portal</span></div></div>
+    <nav>${navItems.map((n,i)=>`
+      <div class="nav-item ${state.page===n.id?'active':''}" data-nav="${n.id}" style="${i>curIdx?'opacity:.3;pointer-events:none':''}">
+        <span style="font-size:.9rem">${n.icon}</span><span>${i+1}. ${n.label}</span>
+        ${n.id==='sign'&&state.signers.some(s=>s.status==='pending')&&state.page!=='sign'?'<span class="nav-badge">!</span>':''}
+      </div>`).join('')}</nav>
+  </div>
+  <div class="main" style="display:flex;flex-direction:column;min-height:100vh;">
+    <div class="topbar">
+      <div class="topbar-left"><h2>${{setup:'Admin Setup',upload:'Upload Input',review:'Review & Preview',signers:'Signatories',send:'Send Envelope',done:'Complete'}[state.page]||''}</h2><span>Form No. <strong style="color:var(--accent)">${state.formNo}</strong></span></div>
+      <div class="topbar-right">
+        ${state.adminEmail?'<span class="dim">'+state.adminEmail+'</span>':''}
+        <div class="avatar" onclick="state.page='setup';render()" title="Settings">SS</div>
+      </div>
+    </div>
+    <div class="content">${renderPage()}</div>
+  </div>
+  ${state.toast?`<div class="toast">${state.toast}</div>`:''}
+  ${state.modal?renderModal():''}`;
+  app.querySelectorAll('[data-nav]').forEach(el=>{const id=el.dataset.nav;if(order.indexOf(id)<=curIdx)el.onclick=()=>{state.page=id;render();};});
+  bindEvents();
+  if(state.modal&&state.modal.type==='sigpad')setTimeout(initPad,50);
+}
+function renderPage(){return{setup:renderSetup,upload:renderUpload,review:renderReview,signers:renderSigners,send:renderSend,done:renderDone}[state.page]();}
+// ═══ 0. SETUP ═══
+function renderSetup(){
+  const hasE=!!state.adminEmail,hasP=!!state.onedrivePath,hasM=state.emailPermission,hasSig=!!state.signatures[1];
+  const allOk=hasE&&hasP&&hasM;
+  return `
+  <div class="card">
+    <div class="card-head"><h3> Admin Configuration</h3>${allOk?'<span class="badge badge-green">✓ Ready</span>':'<span class="badge" style="background:var(--amber-dim);color:var(--amber)">Needs input</span>'}</div>
+    <div class="card-body">
+      <div class="setup-grid">
+        <div>
+          <label>Your Outlook Email (Sender)</label>
+          <input class="input" id="adminEmailInput" type="email" placeholder="you@company.com" value="${state.adminEmail}"/>
+          <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>${hasE?'Configured':'Enter your Outlook address'}</span></div>
+        </div>
+        <div>
+          <label>OneDrive Base Path</label>
+          <input class="input" id="onedrivPathInput" placeholder="/Shared/Cost Approvals/" value="${state.onedrivePath}"/>
+          <div class="setup-status"><span class="dot ${hasP?'dot-ok':'dot-miss'}"></span><span>${hasP?'<b>'+state.onedrivePath+'</b>':'Enter the OneDrive folder path'}</span></div>
+        </div>
+      </div>
+      <div style="margin-top:18px;background:var(--surface);border-radius:8px;padding:16px;">
+        <div class="mini-label" style="margin-bottom:10px;">Email Permission</div>
+        <div class="chk-row" data-setup="emailPerm">
+          <div class="chk-box ${hasM?'on':''}"></div>
+          <span style="color:var(--text);">I authorise this portal to send emails on my behalf to signatories</span>
+        </div>
+        <p class="dim" style="margin-top:6px;">Production: triggers OAuth for <b>Mail.Send</b> via Microsoft Graph API. Emails are sent from your Outlook address.</p>
+      </div>
+      <div style="margin-top:18px;background:var(--surface);border-radius:8px;padding:16px;">
+        <div class="mini-label" style="margin-bottom:8px;">Your Signature (Admin — Prepared By)</div>
+        ${hasSig
+          ? `<div style="display:flex;align-items:center;gap:12px;"><img src="${state.signatures[1]}" class="inline-sig-thumb" style="border:1px solid var(--border);border-radius:4px;background:#fff;padding:2px;"/><div><span class="dim">Saved ✓</span><br><button class="btn btn-ghost btn-sm" id="editAdminSig" style="margin-top:4px;">✏️ Re-draw</button></div></div>`
+          : '<button class="btn btn-primary btn-sm" id="drawAdminSig">✍️ Draw My Signature</button><p class="dim" style="margin-top:6px;">Draw once — reuse with 1 click on every form.</p>'
+        }
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
+          <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>Outlook Email</span></div>
+          <div class="setup-status"><span class="dot ${hasP?'dot-ok':'dot-miss'}"></span><span>OneDrive Path</span></div>
+          <div class="setup-status"><span class="dot ${hasM?'dot-ok':'dot-warn'}"></span><span>Email Permission</span></div>
+          <div class="setup-status"><span class="dot ${hasSig?'dot-ok':'dot-warn'}"></span><span>Admin Signature</span></div>
+        </div>
+        <button class="btn btn-primary" onclick="state.page='upload';render()">Continue → Upload</button>
+      </div>
+    </div>
+  </div>`;
+}
+// ═══ 1. UPLOAD ═══
+function renderUpload(){
+  return `
+  <div class="info-box">📋 Upload Excel (.xlsx) or CSV. Category, checkboxes, and items are parsed automatically.</div>
+  <div class="card">
+    <div class="card-head"><h3>📂 Upload Input File</h3></div>
+    <div class="card-body">
+      <div class="drop-zone" id="dropZone"><input type="file" id="fileInput" accept=".xlsx,.xls,.csv"/><div class="icon">📁</div><p><strong style="color:var(--accent)">Click or drag &amp; drop</strong><br>Excel (.xlsx) or CSV</p></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>📝 Quick-load sample</h3></div>
+    <div class="card-body"><p class="dim" style="margin-bottom:10px">Two items matching Example_1.</p><button class="btn btn-primary" id="loadSample">Load Sample</button></div>
+  </div>`;
+}
+// ═══ 2. REVIEW ═══
+function renderReview(){
+  const t=calcTotals(),cb=getCheckedBy();
+  return `
+  <div class="card">
+    <div class="card-head"><h3>⚙️ Metadata</h3><span class="badge badge-blue">auto-syncs PDF &amp; signers</span></div>
+    <div class="card-body">
+      <div style="margin-bottom:16px;"><div class="mini-label" style="margin-bottom:8px">Department Category</div>
+        <div class="cat-pills"><div class="cat-pill ${state.category==='ELECTRICAL'?'active':''}" data-cat="ELECTRICAL">⚡ Electrical</div><div class="cat-pill ${state.category==='MECHANICAL'?'active':''}" data-cat="MECHANICAL">⚙️ Mechanical</div></div>
+        <p class="dim" style="margin-top:6px">Checked By → <strong style="color:var(--accent)">${cb.name||'—'}</strong></p>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-col"><div class="meta-col-label"><span class="dot" style="background:var(--accent)"></span>Pricing</div><div class="chk-list">${PRICING_OPTIONS.map(o=>`<div class="chk-row" data-grp="pricing" data-val="${o}"><div class="chk-box ${state.pricingChecks.includes(o)?'on':''}"></div><span>${o}</span></div>`).join('')}</div></div>
+        <div class="meta-col"><div class="meta-col-label"><span class="dot" style="background:var(--green)"></span>Quality / PDC</div><div class="chk-list">${QUALITY_OPTIONS.map(o=>`<div class="chk-row" data-grp="quality" data-val="${o}"><div class="chk-box ${state.qualityChecks.includes(o)?'on':''}"></div><span>${o}</span></div>`).join('')}</div></div>
+        <div class="meta-col"><div class="meta-col-label"><span class="dot" style="background:var(--amber)"></span>Part Type</div><div class="chk-list">${PARTTYPE_OPTIONS.map(o=>`<div class="chk-row" data-grp="parttype" data-val="${o}"><div class="chk-box ${state.partTypeChecks.includes(o)?'on':''}"></div><span>${o}</span></div>`).join('')}</div></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-head"><h3>📝 Note</h3></div>
+    <div class="card-body">
+      <label style="display:block; margin-bottom:8px; color:var(--text-dim); font-size:0.85rem;">Details on Change <span style="color:var(--red);">*</span></label>
+      <textarea 
+        class="input" 
+        id="noteInput" 
+        placeholder="Enter the details of the change here (mandatory field)..." 
+        style="min-height:100px; width:100%; resize:vertical; font-family: inherit; padding:12px;"
+        required
+      >${state.note || ''}</textarea>
+      <p class="dim" style="margin-top:6px; font-size:0.8rem;">This note will appear on the PDF form under "Details of Change"</p>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-head"><h3>📊 Item Table</h3><span class="badge badge-blue">${state.items.length} items</span></div>
+    <div class="card-body" style="padding:0;"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:200px">Description</th><th class="num">New Price</th><th class="num">Old Price</th><th class="num">Price Diff</th><th class="num">% Diff</th><th class="num">Yearly Vol</th><th class="num">Cost Impact</th></tr></thead><tbody>
+    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.fsItemCode}</td><td>${it.itemCode}</td><td style="color:var(--text)">${it.desc}</td><td class="num"><input type="number" class="inp-new" data-i="${i}" value="${it.newPrice}" step="0.01"/></td><td class="num"><input type="number" class="inp-old" data-i="${i}" value="${it.oldPrice}" step="0.01"/></td><td class="num" style="color:${it.priceDiff>=0?'var(--red)':'var(--green)'}">${fmt(it.priceDiff)}</td><td class="num" style="color:${it.pctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(it.pctDiff)}</td><td class="num"><input type="number" class="inp-vol" data-i="${i}" value="${it.yearlyVol}" step="1"/></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="tbl-summary"><div>AVG % Diff: <strong style="color:${t.avgPctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(t.avgPctDiff)}</strong></div><div>Total Yearly Vol: <strong>${t.totalVol}</strong></div><div>Yearly Impact: <strong style="color:${t.totalImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.totalImpact)}</strong></div><div>Quarterly (INR): <strong style="color:${t.quarterlyImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.quarterlyImpact)}</strong></div></div>
+    </div></div>
+  </div>
+  <div class="card"><div class="card-head"><h3>📄 PDF Page 1 — Cost Approval Form</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage1()}</div></div>
+  <div class="card"><div class="card-head"><h3>📄 PDF Page 2 — Annexure (Full Table)</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage2()}</div></div>
+  <div class="flex-end mt"><button class="btn btn-primary" onclick="state.page='signers';render()">Continue → Signatories</button></div>`;
+}
+// ═══ PDF PAGE 1 ─── TKE top, 2 rows only, signatures, INR bottom ═══
+function renderPDFPage1(){
+  const t=calcTotals(),cb=getCheckedBy();
+  const d2=state.items.slice(0,2);
+  const totalD=d2.reduce((a,i)=>a+i.priceDiff,0);
+  function cg(opts,checked){return opts.map(o=>`<div class="chk-line"><span class="pdf-chk ${checked.includes(o)?'on':''}">${checked.includes(o)?'✓':''}</span>${o}</div>`).join('');}
+  const sigSlots=[{id:1,label:'Prepared By',name:'Sohail Shaikh'},{id:2,label:'Checked By',name:cb.name||'—'},{id:3,label:'Approved By',name:'VP Purchase'},{id:4,label:'Approved By',name:'Finance Controller'}];
+  return `
+  <div class="pdf-page">
+    <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Cost Approval Form</h2><div style="width:30px"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#666;margin-bottom:7px"><span>Form No.: <b>${state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div class="pdf-row"><b>Initiated By</b><span>Name: ${cb.name||'—'} &nbsp;|&nbsp; Category: ${state.category.charAt(0)+state.category.slice(1).toLowerCase()} &nbsp;|&nbsp; Dept: PSM</span></div>
+    <div class="pdf-section-title">Reason of Change</div>
+    <div class="pdf-reasons">
+      <div><div class="grp-lbl">Pricing</div>${cg(PRICING_OPTIONS,state.pricingChecks)}</div>
+      <div><div class="grp-lbl">Quality / PDC</div>${cg(QUALITY_OPTIONS,state.qualityChecks)}</div>
+      <div><div class="grp-lbl">Part Type</div>${cg(PARTTYPE_OPTIONS,state.partTypeChecks)}</div>
+    </div>
+    <div class="pdf-row"><b>Supplier</b><span>${state.vendorCode} — ${state.vendor}</span></div>
+    <div class="pdf-row"><b>Details of Change</b><span>${state.note || 'No details provided'}</span></div>
+    <div class="pdf-row"><b>Product Line Impacted</b><span>${state.productLine}</span></div>
+    <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
+    <div class="pdf-section-title">Cost Impact Analysis</div>
+    <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
+    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.itemCode}</td><td style="max-width:110px">${it.desc}</td><td class="num">${fmt(it.oldPrice)}</td><td class="num">${fmt(it.newPrice)}</td><td class="num" style="color:${it.priceDiff>=0?'#c0392b':'#27ae60'}">${fmt(it.priceDiff)}</td><td class="num">1</td><td class="num" style="color:${it.priceDiff>=0?'#c0392b':'#27ae60'}">${fmt(it.priceDiff)}</td></tr>`).join('')}
+    <tr style="background:#f0f3f8;font-weight:700"><td colspan="8" style="text-align:right">Total</td><td class="num" style="color:${totalD>=0?'#c0392b':'#27ae60'}">${fmt(totalD)}</td></tr>
+    </tbody></table>
+    <div style="font-size:.6rem;color:#999;text-align:right;margin-top:2px">All Costs are in INR</div>
+    <!-- Signatures -->
+    <div class="pdf-sig-zone">
+      ${sigSlots.map(sl=>`<div class="pdf-sig-box"><div class="sig-line">${state.signatures[sl.id]?'<img src="'+state.signatures[sl.id]+'" alt="sig"/>':'<span class="sig-ph">Signature</span>'}</div><div class="sig-lbl">${sl.label}</div><div class="sig-nm">${sl.name}</div></div>`).join('')}
+    </div>
+    <!-- INR footer -->
+    <div class="pdf-footer"><span>All amounts in Indian Rupees</span><img src="${INR_LOGO}" alt="INR"/></div>
+  </div>`;
+}
+// ═══ PDF PAGE 2 ─── TKE top, FULL table, INR bottom ═══
+function renderPDFPage2(){
+  const t=calcTotals();
+  return `
+  <div class="pdf-page">
+    <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Annexure — Item Price Details</h2><div style="width:30px"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#666;margin-bottom:6px"><span>Form No.: <b>${state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div class="pdf-row"><b>Vendor Code</b><span>${state.vendorCode}</span></div>
+    <div class="pdf-row"><b>Vendor Name</b><span>${state.vendor}</span></div>
+    <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
+    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.fsItemCode}</td><td>${it.itemCode}</td><td>${it.desc}</td><td class="num">${fmt(it.newPrice)}</td><td class="num">${fmt(it.oldPrice)}</td><td class="num" style="color:${it.priceDiff>=0?'#c0392b':'#27ae60'}">${fmt(it.priceDiff)}</td><td class="num">${fmtPct(it.pctDiff)}</td><td class="num">${it.yearlyVol}</td><td class="num" style="color:${it.costImpact>=0?'#c0392b':'#27ae60'}">${fmt(it.costImpact)}</td></tr>`).join('')}
+    </tbody></table>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:6px;font-size:.72rem;gap:2px;">
+      <div style="border-top:2px solid #222;padding-top:5px;display:flex;gap:34px;"><div><b>Avg % Price Diff:</b> ${fmtPct(t.avgPctDiff)}</div><div><b>Total Yearly Vol:</b> ${t.totalVol}</div></div>
+      <div><b>Total Yearly Impact (INR):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.totalImpact)}</span></div>
+      <div><b>Total Quarterly Impact (INR):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span></div>
+    </div>
+    <div class="pdf-footer"><span>All amounts in Indian Rupees</span><img src="${INR_LOGO}" alt="INR"/></div>
+  </div>`;
+}
+// ═══ 3. SIGNERS ═══
+function renderSigners(){
+  const cb=getCheckedBy();
+  return `
+  <div class="info-box">✍️ "Checked By" auto-swaps with category (now <strong>${cb.name||'—'}</strong>). Drag others to reorder.</div>
+  <div class="card">
+    <div class="card-head"><h3>✍️ Signatories &amp; Sequence</h3><span class="badge badge-blue">${state.signers.length} signers</span></div>
+    <div class="card-body">
+      <div style="background:var(--surface);border-radius:8px;padding:14px;margin-bottom:16px;">
+        <div class="mini-label" style="margin-bottom:8px">Add Signatory</div>
+        <div class="form-row"><div><label>Name</label><input class="input" id="newName" placeholder="Full name"/></div><div><label>Role</label><input class="input" id="newRole" placeholder="e.g. VP Finance"/></div><div><label>Email</label><input class="input" id="newEmail" placeholder="name@company.com" type="email"/></div><button class="btn btn-primary btn-sm" id="addSigner" style="align-self:flex-end;">+ Add</button></div>
+      </div>
+      <div id="signerList">${state.signers.map((s,i)=>`
+        <div class="signer-card" data-idx="${i}" draggable="${!s.autoSwap}">
+          ${s.autoSwap?'<span style="width:18px"></span>':'<span class="drag-handle">⠿</span>'}
+          <div class="seq-badge">${i+1}</div>
+          <div class="signer-avatar" style="background:${s.color}">${s.name.split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()}</div>
+          <div class="signer-info"><b>${s.name}${s.autoSwap?'<span class="auto-tag">auto</span>':''}</b><span>${s.role} · ${s.email}</span></div>
+          ${state.signatures[s.id]?'<img src="'+state.signatures[s.id]+'" class="inline-sig-thumb" style="border:1px solid var(--border);border-radius:3px;background:#fff;padding:1px;" title="Sig saved"/>':''}
+          ${s.autoSwap?'':'<button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:3px 8px;" data-remove="'+i+'">✕</button>'}
+        </div>`).join('')}</div>
+    </div>
+  </div>
+  <div class="flex-end mt"><button class="btn btn-ghost" onclick="state.page='review';render()">← Back</button><button class="btn btn-primary" onclick="state.page='send';render()">Continue → Send &amp; Sign</button></div>`;
+}
+// ═══ 4. SIGN ═══
+function renderSend(){
+  const allSent = state.signers.every(s => s.status !== 'waiting');
+  const allSigned = state.signers.every(s => s.status === 'signed');
+  
+  return `
+  <div class="card">
+    <div class="card-head">
+      <h3>📤 Send Envelope</h3>
+      ${allSigned ? '<span class="badge badge-green">✓ All Signed</span>' : allSent ? '<span class="badge badge-blue">✉️ Sent</span>' : '<span class="badge" style="background:var(--amber-dim);color:var(--amber)">Ready</span>'}
+    </div>
+    <div class="card-body">
+      ${!allSent ? `
+      <div class="info-box">
+        📧 Click <b>"Send Envelope"</b> below to dispatch DocuSign-style signing links to all signatories. They will receive emails with unique URLs to review and sign the PDF.
+      </div>
+      ` : `
+      <div class="info-box" style="background:var(--green-dim);border-color:rgba(52,211,153,.25);color:var(--green);">
+        ✉️ Envelope sent! ${state.signers.filter(s=>s.status==='signed').length} of ${state.signers.length} signatories have signed. Track progress below.
+      </div>
+      `}
+      
+      <div style="margin-bottom:20px;">
+        <div class="mini-label" style="margin-bottom:10px;">Signatory Status</div>
+        ${state.signers.map((s, i) => `
+          <div class="signer-card" style="margin-bottom:10px;">
+            <div class="seq-badge" style="background:${s.status === 'signed' ? 'var(--green)' : s.status === 'pending' ? 'var(--amber)' : 'var(--text-xs)'}">${i + 1}</div>
+            <div class="signer-avatar" style="background:${s.color}">${s.name.split(' ').map(n => n[0] || '').join('').slice(0, 2).toUpperCase()}</div>
+            <div class="signer-info">
+              <b>${s.name}</b>
+              <span>${s.role} · ${s.email}</span>
+            </div>
+            <span class="signer-status st-${s.status}">${{signed: '✓ Signed', pending: '⏳ Email Sent', waiting: '⏸ Not Sent'}[s.status] || ''}</span>
+          </div>
+        `).join('')}
+      </div>
+      
+      ${!allSent ? `
+      <div style="background:var(--surface);border-radius:10px;padding:24px;border:2px solid var(--accent);">
+        <h4 style="color:var(--accent);margin-bottom:10px;font-size:1rem;">📨 Ready to Send</h4>
+        <p class="dim" style="margin-bottom:18px;">
+          This will email <b>${state.signers.length} signatories</b> with secure signing links. 
+          Each link is unique and expires in 7 days.
+        </p>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="sendEnvelopeBtn" style="padding:12px 28px;font-size:.92rem;">
+            📤 Send Envelope
+          </button>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-dim);margin:0;">
+            <input type="checkbox" id="sequentialCheck" ${state.sequential ? 'checked' : ''}/>
+            Sequential signing (one at a time)
+          </label>
+        </div>
+        <p style="font-size:.74rem;color:var(--text-xs);margin-top:12px;">
+          💡 <b>Sequential:</b> Each signatory receives email only after previous person signs.<br>
+          💡 <b>Parallel (default):</b> All signatories receive emails immediately.
+        </p>
+      </div>
+      ` : allSigned ? `
+      <div style="margin-top:24px;background:var(--surface);border-radius:10px;padding:20px;">
+        <div class="mini-label" style="margin-bottom:10px;">💾 Save Final PDF</div>
+        <p class="dim" style="margin-bottom:12px;">Base path: <b>${state.onedrivePath || '(not configured)'}</b></p>
+        <div style="display:flex;gap:12px;align-items:flex-end;">
+          <div style="flex:1">
+            <label>OneDrive Sub-folder</label>
+            <select class="input" id="saveFolderSelect">
+              <option value="">— Select folder —</option>
+              <option value="quarterly">📁 Quarterly Cost Approvals</option>
+              <option value="adhoc">📁 Ad Hoc Approvals</option>
+            </select>
+          </div>
+          <button class="btn btn-green" id="savePDFBtn" style="padding:10px 24px;">💾 Save to OneDrive</button>
+        </div>
+      </div>
+      ` : `
+      <div style="margin-top:24px;text-align:center;padding:40px 20px;background:var(--surface);border-radius:10px;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">⏳</div>
+        <p style="color:var(--text-dim);font-size:.88rem;">Waiting for signatures...</p>
+        <p style="color:var(--text-xs);font-size:.76rem;margin-top:8px;">
+          ${state.signers.filter(s=>s.status==='signed').length} of ${state.signers.length} complete. 
+          This page auto-refreshes every 30 seconds.
+        </p>
+      </div>
+      `}
+    </div>
+  </div>
+  <div class="flex-end mt">
+    <button class="btn btn-ghost" onclick="state.page='signers';render()">← Back</button>
+  </div>`;
+}
+function renderDone(){
+  const fullPath=(state.onedrivePath||'//')+(state.saveTo==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+state.formNo+'.pdf';
+  return `
+  <div style="text-align:center;padding:60px 20px;">
+    <div style="font-size:4rem;margin-bottom:16px">✅</div>
+    <h2 style="color:#fff;font-size:1.5rem;margin-bottom:8px">Approval Complete!</h2>
+    <p style="color:var(--text-dim);max-width:480px;margin:0 auto 24px">Form No. <strong style="color:var(--accent)">${state.formNo}</strong> signed &amp; saved.</p>
+    <div class="card" style="max-width:520px;margin:0 auto 20px;text-align:left;">
+      <div class="card-head"><h3>📋 Summary</h3></div>
+      <div class="card-body">
+        <div class="pdf-row"><b>Form No.</b><span>${state.formNo}</span></div>
+        <div class="pdf-row"><b>Vendor</b><span>${state.vendor} (${state.vendorCode})</span></div>
+        <div class="pdf-row"><b>Category</b><span>${state.category.charAt(0)+state.category.slice(1).toLowerCase()}</span></div>
+        <div class="pdf-row"><b>Items</b><span>${state.items.length}</span></div>
+        <div class="pdf-row"><b>Quarterly Impact</b><span style="color:var(--red);font-weight:600">${fmt(calcTotals().quarterlyImpact)} INR</span></div>
+        <div class="pdf-row"><b>Saved To</b><span style="color:var(--green)">${fullPath}</span></div>
+        <div class="pdf-row"><b>Signatories</b><span>${state.signers.map(s=>s.name).join(', ')}</span></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="resetAll()">🔄 New Approval</button>
+  </div>`;
+}
+// ═══ MODAL ═══
+function renderModal(){
+  if(!state.modal)return '';
+  const m=state.modal;
+  if(m.type==='sigpad'){
+    const sName=state.sigPadFor==='admin'?'Admin (Prepared By)':((state.signers.find(s=>s.id===state.sigPadFor)||{}).name||'Signatory');
+    return `<div class="modal-back" onclick="state.modal=null;render()"><div class="modal" onclick="event.stopPropagation()" style="max-width:620px;"><h3>✍️ Draw Signature</h3><p>Sign below for <strong style="color:var(--accent)">${sName}</strong>. Saved once — reuse with 1 click.</p><div class="sig-pad-wrap"><canvas id="sigCanvas" style="width:100%;height:160px;"></canvas><div class="sig-pad-toolbar"><button class="btn btn-ghost btn-sm" id="clearPadBtn">🗑️ Clear</button><span class="dim" style="flex:1;text-align:center">Draw with mouse or finger</span><button class="btn btn-green btn-sm" id="savePadBtn">✓ Save Signature</button></div></div><div class="modal-actions"><button class="btn btn-ghost" onclick="state.modal=null;render()">Cancel</button></div></div></div>`;
+  }
+  if(m.type==='save'){
+    const fp=(state.onedrivePath||'//')+(m.folder==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+state.formNo+'.pdf';
+    return `<div class="modal-back" onclick="state.modal=null;render()"><div class="modal" onclick="event.stopPropagation()"><h3>💾 Save Confirmation</h3><p>PDF will be saved to:<br><strong style="color:var(--accent)">${fp}</strong></p><div class="modal-actions"><button class="btn btn-ghost" onclick="state.modal=null;render()">Cancel</button><button class="btn btn-green" id="confirmSave">Confirm Save</button></div></div></div>`;
+  }
+  return '';
+}
+// ═══ EVENTS ═══
+function bindEvents(){
+  const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
+  if(dz){dz.onclick=()=>fi&&fi.click();dz.ondragover=(e)=>{e.preventDefault();dz.classList.add('over');};dz.ondragleave=()=>dz.classList.remove('over');dz.ondrop=(e)=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)handleFile(f);};if(fi)fi.onchange=(e)=>{if(e.target.files[0])handleFile(e.target.files[0]);};}
+  const ls=document.getElementById('loadSample');if(ls)ls.onclick=loadSample;
+  // setup live
+  const ae=document.getElementById('adminEmailInput');if(ae)ae.oninput=()=>{state.adminEmail=ae.value.trim();};
+  const op=document.getElementById('onedrivPathInput');if(op)op.oninput=()=>{state.onedrivePath=op.value.trim();};
+  const noteInput=document.getElementById('noteInput');if(noteInput)noteInput.oninput=()=>{state.note=noteInput.value;};
+  const ep=document.querySelector('[data-setup="emailPerm"]');if(ep)ep.onclick=()=>{state.emailPermission=!state.emailPermission;render();};
+  const das=document.getElementById('drawAdminSig');if(das)das.onclick=()=>{state.sigPadFor='admin';state.modal={type:'sigpad'};render();};
+  const eas=document.getElementById('editAdminSig');if(eas)eas.onclick=()=>{state.sigPadFor='admin';state.modal={type:'sigpad'};render();};
+  // category
+  document.querySelectorAll('[data-cat]').forEach(el=>{el.onclick=()=>{state.category=el.dataset.cat;applyCategoryToSigners();render();};});
+  // checkboxes
+  document.querySelectorAll('.chk-row[data-grp]').forEach(el=>{el.onclick=()=>{toggle(state[{pricing:'pricingChecks',quality:'qualityChecks',parttype:'partTypeChecks'}[el.dataset.grp]],el.dataset.val);render();};});
+  // table
+  ['inp-new','inp-old','inp-vol'].forEach(cls=>{document.querySelectorAll('.'+cls).forEach(inp=>{inp.oninput=()=>{const i=parseInt(inp.dataset.i);state.items[i][{['inp-new']:'newPrice',['inp-old']:'oldPrice',['inp-vol']:'yearlyVol'}[cls]]=parseFloat(inp.value)||0;calcRow(state.items[i]);render();};});});
+  // add signer
+  const ab=document.getElementById('addSigner');if(ab)ab.onclick=()=>{const n=document.getElementById('newName').value.trim(),r=document.getElementById('newRole').value.trim(),e=document.getElementById('newEmail').value.trim();if(!n||!e){showToast('Name & Email required');return;}const colors=['#4f8aff','#7c3aed','#f59e0b','#34d399','#f87171','#60a5fa'];state.signers.push({id:Date.now(),name:n,role:r||'Signatory',email:e,status:'waiting',color:colors[state.signers.length%colors.length]});showToast('Added: '+n);render();};
+  // remove
+  document.querySelectorAll('[data-remove]').forEach(btn=>{btn.onclick=()=>{state.signers.splice(parseInt(btn.dataset.remove),1);render();};});
+  // drag
+  document.querySelectorAll('.signer-card[draggable="true"]').forEach(card=>{card.ondragstart=(e)=>{state.dragIdx=parseInt(card.dataset.idx);e.dataTransfer.effectAllowed='move';};card.ondragover=(e)=>{e.preventDefault();e.dataTransfer.dropEffect='move';};card.ondrop=(e)=>{e.preventDefault();const to=parseInt(card.dataset.idx);if(state.dragIdx===null||state.dragIdx===to)return;const item=state.signers.splice(state.dragIdx,1)[0];state.signers.splice(to,0,item);state.dragIdx=null;render();};});
+  // sign
+  document.querySelectorAll('[data-sign]').forEach(btn=>{btn.onclick=()=>simulateSign(parseInt(btn.dataset.sign));});
+  // draw sig on sign page
+  document.querySelectorAll('[data-drawsig]').forEach(btn=>{btn.onclick=()=>{state.sigPadFor=parseInt(btn.dataset.drawsig);state.modal={type:'sigpad'};render();};});
+    // Send envelope button
+  const seb = document.getElementById('sendEnvelopeBtn');
+  if(seb) seb.onclick = sendEnvelope;
+  const seqc = document.getElementById('sequentialCheck');
+  if(seqc) seqc.onchange = () => {state.sequential = seqc.checked;};
+  
+  // save PDF
+  const spBtn=document.getElementById('savePDFBtn');if(spBtn)spBtn.onclick=()=>{const folder=document.getElementById('saveFolderSelect').value;if(!folder){showToast('Pick a folder');return;}state.modal={type:'save',folder};render();};
+  const cs=document.getElementById('confirmSave');if(cs)cs.onclick=()=>{state.saveTo=state.modal.folder;state.modal=null;showToast('PDF saved ✓');state.formNo++;setTimeout(()=>{state.page='done';render();},1200);};
+}
+function handleFile(file){if(file.name.endsWith('.csv')){const r=new FileReader();r.onload=(e)=>parseCSV(e.target.result);r.readAsText(file);}else parseExcel(file);}
+function loadSample(){
+  state.vendorCode='3010453056';state.vendor='Shanghai Zhongling Electronics';state.date='2026-02-03';
+  state.category='ELECTRICAL';state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=['New Part'];
+  state.items=[
+    {id:0,fsItemCode:'1910675981',itemCode:'1910675981',desc:'DSC COP CH1A-A35D8_14 STOPS_79425228-229',newPrice:2494.66,oldPrice:2110,yearlyVol:11,priceDiff:0,pctDiff:0,costImpact:0},
+    {id:1,fsItemCode:'1910675971',itemCode:'1910675971',desc:'DSC COP CH1A-A35D8_17 STOPS_79425225-227',newPrice:2563.23,oldPrice:0,yearlyVol:0,priceDiff:0,pctDiff:0,costImpact:0},
+  ];
+  state.items.forEach(calcRow);applyCategoryToSigners();state.page='review';showToast('Sample loaded');render();
+}
+function resetAll(){
+  state.page='upload';state.items=[];state.saveTo='';
+  state.signers.forEach(s=>{s.status=(s===state.signers[0]?'pending':'waiting');});
+  applyCategoryToSigners();render();
+}
+render();
+</script>
+</body>
+</html>
