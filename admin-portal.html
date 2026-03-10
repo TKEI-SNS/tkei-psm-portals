@@ -171,21 +171,21 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 <body>
 <div class="shell" id="app"></div>
 <script>
+const API_URL="https://tkei-psm-backend.onrender.com";
 
-// API Configuration //
-const API_URL = 'https://tkei-psm-api-production.up.railway.app';  // Replace with your Railway URL
 
 const TKE_LOGO='data:image/png;base64,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';
 const INR_LOGO='data:image/png;base64,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';
+
 const PRICING_OPTIONS=['RM Increase','RM Decrease','Sourcing Increase','Sourcing Decrease','E Auction Increase','E Auction Decrease'];
 const QUALITY_OPTIONS=['Quality-Field Complaint','Quality-Product Improvement','PDC/CE - Product Improvement','PDC/CE - EMI Change'];
 const PARTTYPE_OPTIONS=['New Part','Existing/Old Part','Other'];
+
 const state={
   page:'setup',
   items:[],formNo:1001,vendor:'',vendorCode:'',date:'2026-02-03',
   productLine:'All',
   category:'ELECTRICAL',
-  note:'',
   pricingChecks:[],qualityChecks:[],partTypeChecks:['New Part'],
   signers:[
     {id:1,name:'Sohail Shaikh',role:'Prepared By',email:'sohail@company.com',status:'pending',color:'#4f8aff'},
@@ -193,12 +193,13 @@ const state={
     {id:3,name:'VP Purchase',role:'Approved By VP Purchase',email:'vp@company.com',status:'waiting',color:'#f59e0b'},
     {id:4,name:'Finance Controller',role:'Approved By Finance',email:'finance@company.com',status:'waiting',color:'#34d399'},
   ],
-  adminEmail:'',onedrivePath:'',emailPermission:false,
+  adminEmail:'',onedrivePath:'',emailPermission:false,syncStatus:null,infoRecordsFile:null,porvFile:null,
   signatures:{},   // signerId → dataURL
   sigPadFor:null,  // id being drawn or 'admin'
   saveTo:'',toast:null,modal:null,dragIdx:null,
   sequential:false
 };
+
 // ── helpers ──
 function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
 function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
@@ -214,6 +215,7 @@ function applyCategoryToSigners(){
   if(s){s.name=p.name;s.email=p.email;s.color=p.color;}
 }
 function getCheckedBy(){return state.signers.find(s=>s.autoSwap)||{};}
+
 // ── XLSX parser ──
 async function unzipEntries(buffer){
   const u8=new Uint8Array(buffer),dv=new DataView(buffer),entries={};let off=0;
@@ -235,19 +237,21 @@ function colIndex(ref){let c=0;for(let i=0;i<ref.length;i++){const ch=ref.charCo
 function parseSheet(xml,shared){if(!xml)return[];const doc=new DOMParser().parseFromString(xml,'text/xml'),rows=[];doc.querySelectorAll('row').forEach(rowEl=>{const r=parseInt(rowEl.getAttribute('r'))-1;while(rows.length<=r)rows.push([]);rowEl.querySelectorAll('c').forEach(cEl=>{const ref=cEl.getAttribute('r'),t=cEl.getAttribute('t'),col=colIndex(ref),vEl=cEl.querySelector('v'),isEl=cEl.querySelector('is t');let val='';if(t==='s'&&vEl)val=shared[parseInt(vEl.textContent)]||'';else if(isEl)val=isEl.textContent||'';else if(vEl)val=vEl.textContent||'';while(rows[r].length<=col)rows[r].push('');rows[r][col]=val;});});return rows;}
 async function parseExcel(file){showToast('Parsing…');try{const buffer=await file.arrayBuffer(),entries=await unzipEntries(buffer);let sn=Object.keys(entries).find(k=>/xl\/worksheets\/sheet1\.xml/i.test(k));if(!sn)sn=Object.keys(entries).find(k=>/sheet1/i.test(k));if(!sn){showToast('No sheet1');return;}const shared=parseSharedStrings(new TextDecoder().decode(entries['xl/sharedStrings.xml']||new Uint8Array()));applyParsedData(parseSheet(new TextDecoder().decode(entries[sn]),shared));}catch(e){console.error(e);showToast('Parse error');}}
 function parseCSV(text){applyParsedData(text.split('\n').map(r=>r.split(',').map(c=>c.replace(/^"|"$/g,'').trim())));}
+
 function applyParsedData(rows){
   let hIdx=-1;
-  for(let i=0;i<rows.length;i++){if(rows[i].some(c=>String(c).toLowerCase().includes('fs item code'))){hIdx=i;break;}}
+  for(let i=0;i<rows.length;i++){if(rows[i].some(c=>String(c).toLowerCase().includes('item code'))){hIdx=i;break;}}
   if(hIdx<0){showToast('No header');return;}
   for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
   state.items=[];
-  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;state.items.push({id:state.items.length,fsItemCode:f,itemCode:String(r[1]||'').trim(),desc:String(r[2]||'').trim(),newPrice:parseFloat(r[3])||0,oldPrice:parseFloat(r[4])||0,yearlyVol:parseFloat(r[7])||0,priceDiff:0,pctDiff:0,costImpact:0});calcRow(state.items[state.items.length-1]);}
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;state.items.push({id:state.items.length,itemCode:f,itemDescription:String(r[1]||'').trim(),vendorCode:String(r[2]||'').trim(),vendorName:String(r[3]||'').trim(),newPrice:parseFloat(r[4])||0,currency:String(r[5]||'INR').trim(),oldPrice:0,priceDiff:0,pctDiff:0,costImpact:0,yearlyVol:0});calcRow(state.items[state.items.length-1]);}
   state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
-  if(state.items.length){state.page='review';showToast('Loaded — '+state.items.length+' items');}else showToast('No items');
+  if(state.items.length){showToast('✅ Loaded '+state.items.length+' items. Click Calculate to proceed.');}else showToast('No items');
   render();
 }
+
 // ── Signature pad ──
 let padCtx=null,padDrawing=false,padHasStroke=false;
 function initPad(){
@@ -273,7 +277,9 @@ function savePadSignature(){
   showToast('Signature saved ✓');
   state.modal=null;render();
 }
+
 // ── Sign flow ──
+
 async function sendEnvelope() {
   console.log('Checking config:', {email: state.adminEmail, permission: state.emailPermission});
   
@@ -294,7 +300,7 @@ async function sendEnvelope() {
     state.signers.forEach(s => { if(s.status === 'waiting') s.status = 'pending'; });
   }
   
-  // Simulate email send (in production: call MS Graph )
+  // Simulate email send (in production: call MS Graph API)
   for(const s of state.signers.filter(s => s.status === 'pending')) {
     const token = `form${state.formNo}_s${s.id}_${Date.now()}`;
     console.log(`📧 Would email ${s.email} with signing link: signing-portal-final.html?token=${token}`);
@@ -304,11 +310,13 @@ async function sendEnvelope() {
   showToast(`✉️ Envelope sent to ${state.signers.filter(s=>s.status==='pending').length} signatories!`);
   setTimeout(() => { state.page = 'done'; render(); }, 2000);
 }
+
 function render(){
   const app=document.getElementById('app');
   const navItems=[{id:'setup',label:'Setup',icon:'⚙️'},{id:'upload',label:'Upload',icon:'📂'},{id:'review',label:'Review & Preview',icon:'👁'},{id:'signers',label:'Signatories',icon:'✍'},{id:'send',label:'Send Envelope',icon:'📤'},{id:'done',label:'Complete',icon:'✅'}];
   const order=['setup','upload','review','signers','send','done'];
   const curIdx=order.indexOf(state.page);
+
   app.innerHTML=`
   <div class="sidebar">
     <div class="sidebar-brand"><img src="${TKE_LOGO}" alt="TKE"/><div><h1>CostApproval</h1><span>Admin Portal</span></div></div>
@@ -330,31 +338,72 @@ function render(){
   </div>
   ${state.toast?`<div class="toast">${state.toast}</div>`:''}
   ${state.modal?renderModal():''}`;
+
   app.querySelectorAll('[data-nav]').forEach(el=>{const id=el.dataset.nav;if(order.indexOf(id)<=curIdx)el.onclick=()=>{state.page=id;render();};});
   bindEvents();
   if(state.modal&&state.modal.type==='sigpad')setTimeout(initPad,50);
 }
+
 function renderPage(){return{setup:renderSetup,upload:renderUpload,review:renderReview,signers:renderSigners,send:renderSend,done:renderDone}[state.page]();}
+
 // ═══ 0. SETUP ═══
 function renderSetup(){
   const hasE=!!state.adminEmail,hasP=!!state.onedrivePath,hasM=state.emailPermission,hasSig=!!state.signatures[1];
   const allOk=hasE&&hasP&&hasM;
   return `
   <div class="card">
-    <div class="card-head"><h3> Admin Configuration</h3>${allOk?'<span class="badge badge-green">✓ Ready</span>':'<span class="badge" style="background:var(--amber-dim);color:var(--amber)">Needs input</span>'}</div>
+    <div class="card-head"><h3>⚙️ Admin Configuration</h3>${allOk?'<span class="badge badge-green">✓ Ready</span>':'<span class="badge" style="background:var(--amber-dim);color:var(--amber)">Needs input</span>'}</div>
     <div class="card-body">
       <div class="setup-grid">
         <div>
           <label>Your Outlook Email (Sender)</label>
-          <input class="input" id="adminEmailInput" type="email" placeholder="you@company.com" value="${state.adminEmail}"/>
+          <input class="input" id="adminEmailInput" type="email" placeholder="you@company.com" value="${state.adminEmail}" onchange="state.adminEmail=this.value"/>
           <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>${hasE?'Configured':'Enter your Outlook address'}</span></div>
         </div>
+        <div>
+          <label>OneDrive Base Path (optional)</label>
+          <input class="input" id="onedrivPathInput" placeholder="/Shared/Cost Approvals/" value="${state.onedrivePath}" onchange="state.onedrivePath=this.value"/>
+        </div>
+      </div>
+      
+      <div style="margin-top:20px;background:var(--surface);border:2px dashed var(--accent);border-radius:10px;padding:20px;">
+        <div class="mini-label" style="margin-bottom:12px;">📊 Database Sync - Upload Excel Files</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:0.82rem;color:var(--text-dim);margin-bottom:6px;">Info Record Report</label>
+            <input type="file" id="infoRecordsFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleInfoRecordsFile(this)"/>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('infoRecordsFileInput').click()" style="width:100%">
+              ${state.infoRecordsFile?'✅ '+state.infoRecordsFile.name:'📁 Choose File'}
+            </button>
+          </div>
+          
+          <div>
+            <label style="display:block;font-size:0.82rem;color:var(--text-dim);margin-bottom:6px;">PORV File</label>
+            <input type="file" id="porvFileInput" accept=".xlsx,.xls" style="display:none" onchange="handlePorvFile(this)"/>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('porvFileInput').click()" style="width:100%">
+              ${state.porvFile?'✅ '+state.porvFile.name:'📁 Choose File'}
+            </button>
+          </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="syncFiles()" style="width:100%" ${!state.infoRecordsFile||!state.porvFile?'disabled':''}>
+          🔄 Sync Files to Database
+        </button>
+        
+        ${state.syncStatus?`<div style="margin-top:12px;padding:12px;background:var(--card);border-radius:6px;font-size:0.8rem;">
+          <div style="color:var(--green);margin-bottom:6px;">✅ Last synced: ${new Date(state.syncStatus.lastSync).toLocaleString()}</div>
+          <div style="color:var(--text-dim);">Info Records: <strong>${state.syncStatus.infoRecords}</strong> rows</div>
+          <div style="color:var(--text-dim);">PORV Data: <strong>${state.syncStatus.porvData}</strong> rows</div>
+        </div>`:'<p class="dim" style="margin-top:8px;font-size:0.75rem;">Select both files, then click Sync to update database</p>'}
+      </div>
         <div>
           <label>OneDrive Base Path</label>
           <input class="input" id="onedrivPathInput" placeholder="/Shared/Cost Approvals/" value="${state.onedrivePath}"/>
           <div class="setup-status"><span class="dot ${hasP?'dot-ok':'dot-miss'}"></span><span>${hasP?'<b>'+state.onedrivePath+'</b>':'Enter the OneDrive folder path'}</span></div>
         </div>
       </div>
+
       <div style="margin-top:18px;background:var(--surface);border-radius:8px;padding:16px;">
         <div class="mini-label" style="margin-bottom:10px;">Email Permission</div>
         <div class="chk-row" data-setup="emailPerm">
@@ -363,6 +412,7 @@ function renderSetup(){
         </div>
         <p class="dim" style="margin-top:6px;">Production: triggers OAuth for <b>Mail.Send</b> via Microsoft Graph API. Emails are sent from your Outlook address.</p>
       </div>
+
       <div style="margin-top:18px;background:var(--surface);border-radius:8px;padding:16px;">
         <div class="mini-label" style="margin-bottom:8px;">Your Signature (Admin — Prepared By)</div>
         ${hasSig
@@ -370,6 +420,7 @@ function renderSetup(){
           : '<button class="btn btn-primary btn-sm" id="drawAdminSig">✍️ Draw My Signature</button><p class="dim" style="margin-top:6px;">Draw once — reuse with 1 click on every form.</p>'
         }
       </div>
+
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
         <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
           <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>Outlook Email</span></div>
@@ -382,6 +433,7 @@ function renderSetup(){
     </div>
   </div>`;
 }
+
 // ═══ 1. UPLOAD ═══
 function renderUpload(){
   return `
@@ -397,6 +449,7 @@ function renderUpload(){
     <div class="card-body"><p class="dim" style="margin-bottom:10px">Two items matching Example_1.</p><button class="btn btn-primary" id="loadSample">Load Sample</button></div>
   </div>`;
 }
+
 // ═══ 2. REVIEW ═══
 function renderReview(){
   const t=calcTotals(),cb=getCheckedBy();
@@ -415,22 +468,6 @@ function renderReview(){
       </div>
     </div>
   </div>
-  
-  <div class="card">
-    <div class="card-head"><h3>📝 Note</h3></div>
-    <div class="card-body">
-      <label style="display:block; margin-bottom:8px; color:var(--text-dim); font-size:0.85rem;">Details on Change <span style="color:var(--red);">*</span></label>
-      <textarea 
-        class="input" 
-        id="noteInput" 
-        placeholder="Enter the details of the change here (mandatory field)..." 
-        style="min-height:100px; width:100%; resize:vertical; font-family: inherit; padding:12px;"
-        required
-      >${state.note || ''}</textarea>
-      <p class="dim" style="margin-top:6px; font-size:0.8rem;">This note will appear on the PDF form under "Details of Change"</p>
-    </div>
-  </div>
-  
   <div class="card">
     <div class="card-head"><h3>📊 Item Table</h3><span class="badge badge-blue">${state.items.length} items</span></div>
     <div class="card-body" style="padding:0;"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:200px">Description</th><th class="num">New Price</th><th class="num">Old Price</th><th class="num">Price Diff</th><th class="num">% Diff</th><th class="num">Yearly Vol</th><th class="num">Cost Impact</th></tr></thead><tbody>
@@ -443,6 +480,7 @@ function renderReview(){
   <div class="card"><div class="card-head"><h3>📄 PDF Page 2 — Annexure (Full Table)</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage2()}</div></div>
   <div class="flex-end mt"><button class="btn btn-primary" onclick="state.page='signers';render()">Continue → Signatories</button></div>`;
 }
+
 // ═══ PDF PAGE 1 ─── TKE top, 2 rows only, signatures, INR bottom ═══
 function renderPDFPage1(){
   const t=calcTotals(),cb=getCheckedBy();
@@ -462,8 +500,8 @@ function renderPDFPage1(){
       <div><div class="grp-lbl">Part Type</div>${cg(PARTTYPE_OPTIONS,state.partTypeChecks)}</div>
     </div>
     <div class="pdf-row"><b>Supplier</b><span>${state.vendorCode} — ${state.vendor}</span></div>
-    <div class="pdf-row"><b>Details of Change</b><span>${state.note || 'No details provided'}</span></div>
-    <div class="pdf-row"><b>Product Line Impacted</b><span>${state.productLine}</span></div>
+    <div class="pdf-row"><b>Details of Change</b><span>NEW ITEMS</span></div>
+    <div class="pdf-row"><b>Product Line Impacted</b><span>NEW ITEMS</span></div>
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
     <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
@@ -479,6 +517,7 @@ function renderPDFPage1(){
     <div class="pdf-footer"><span>All amounts in Indian Rupees</span><img src="${INR_LOGO}" alt="INR"/></div>
   </div>`;
 }
+
 // ═══ PDF PAGE 2 ─── TKE top, FULL table, INR bottom ═══
 function renderPDFPage2(){
   const t=calcTotals();
@@ -499,6 +538,7 @@ function renderPDFPage2(){
     <div class="pdf-footer"><span>All amounts in Indian Rupees</span><img src="${INR_LOGO}" alt="INR"/></div>
   </div>`;
 }
+
 // ═══ 3. SIGNERS ═══
 function renderSigners(){
   const cb=getCheckedBy();
@@ -524,6 +564,7 @@ function renderSigners(){
   </div>
   <div class="flex-end mt"><button class="btn btn-ghost" onclick="state.page='review';render()">← Back</button><button class="btn btn-primary" onclick="state.page='send';render()">Continue → Send &amp; Sign</button></div>`;
 }
+
 // ═══ 4. SIGN ═══
 function renderSend(){
   const allSent = state.signers.every(s => s.status !== 'waiting');
@@ -614,6 +655,7 @@ function renderSend(){
     <button class="btn btn-ghost" onclick="state.page='signers';render()">← Back</button>
   </div>`;
 }
+
 function renderDone(){
   const fullPath=(state.onedrivePath||'//')+(state.saveTo==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+state.formNo+'.pdf';
   return `
@@ -636,6 +678,7 @@ function renderDone(){
     <button class="btn btn-primary" onclick="resetAll()">🔄 New Approval</button>
   </div>`;
 }
+
 // ═══ MODAL ═══
 function renderModal(){
   if(!state.modal)return '';
@@ -650,6 +693,7 @@ function renderModal(){
   }
   return '';
 }
+
 // ═══ EVENTS ═══
 function bindEvents(){
   const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
@@ -658,7 +702,6 @@ function bindEvents(){
   // setup live
   const ae=document.getElementById('adminEmailInput');if(ae)ae.oninput=()=>{state.adminEmail=ae.value.trim();};
   const op=document.getElementById('onedrivPathInput');if(op)op.oninput=()=>{state.onedrivePath=op.value.trim();};
-  const noteInput=document.getElementById('noteInput');if(noteInput)noteInput.oninput=()=>{state.note=noteInput.value;};
   const ep=document.querySelector('[data-setup="emailPerm"]');if(ep)ep.onclick=()=>{state.emailPermission=!state.emailPermission;render();};
   const das=document.getElementById('drawAdminSig');if(das)das.onclick=()=>{state.sigPadFor='admin';state.modal={type:'sigpad'};render();};
   const eas=document.getElementById('editAdminSig');if(eas)eas.onclick=()=>{state.sigPadFor='admin';state.modal={type:'sigpad'};render();};
@@ -678,6 +721,7 @@ function bindEvents(){
   document.querySelectorAll('[data-sign]').forEach(btn=>{btn.onclick=()=>simulateSign(parseInt(btn.dataset.sign));});
   // draw sig on sign page
   document.querySelectorAll('[data-drawsig]').forEach(btn=>{btn.onclick=()=>{state.sigPadFor=parseInt(btn.dataset.drawsig);state.modal={type:'sigpad'};render();};});
+
     // Send envelope button
   const seb = document.getElementById('sendEnvelopeBtn');
   if(seb) seb.onclick = sendEnvelope;
@@ -688,7 +732,9 @@ function bindEvents(){
   const spBtn=document.getElementById('savePDFBtn');if(spBtn)spBtn.onclick=()=>{const folder=document.getElementById('saveFolderSelect').value;if(!folder){showToast('Pick a folder');return;}state.modal={type:'save',folder};render();};
   const cs=document.getElementById('confirmSave');if(cs)cs.onclick=()=>{state.saveTo=state.modal.folder;state.modal=null;showToast('PDF saved ✓');state.formNo++;setTimeout(()=>{state.page='done';render();},1200);};
 }
+
 function handleFile(file){if(file.name.endsWith('.csv')){const r=new FileReader();r.onload=(e)=>parseCSV(e.target.result);r.readAsText(file);}else parseExcel(file);}
+
 function loadSample(){
   state.vendorCode='3010453056';state.vendor='Shanghai Zhongling Electronics';state.date='2026-02-03';
   state.category='ELECTRICAL';state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=['New Part'];
@@ -698,12 +744,84 @@ function loadSample(){
   ];
   state.items.forEach(calcRow);applyCategoryToSigners();state.page='review';showToast('Sample loaded');render();
 }
+
 function resetAll(){
   state.page='upload';state.items=[];state.saveTo='';
   state.signers.forEach(s=>{s.status=(s===state.signers[0]?'pending':'waiting');});
   applyCategoryToSigners();render();
 }
+
 render();
+
+
+// Handle Info Records file selection
+function handleInfoRecordsFile(input) {
+  if (input.files && input.files[0]) {
+    state.infoRecordsFile = input.files[0];
+    console.log('✅ Info Records file selected:', state.infoRecordsFile.name);
+    render();
+  }
+}
+
+// Handle PORV file selection
+function handlePorvFile(input) {
+  if (input.files && input.files[0]) {
+    state.porvFile = input.files[0];
+    console.log('✅ PORV file selected:', state.porvFile.name);
+    render();
+  }
+}
+
+// Sync files to database
+async function syncFiles() {
+  if (!state.infoRecordsFile || !state.porvFile) {
+    showToast('⚠️ Please select both files');
+    return;
+  }
+  
+  console.log('🔄 Starting file sync...');
+  showToast('🔄 Uploading files to server...');
+  
+  try {
+    // Create FormData with both files
+    const formData = new FormData();
+    formData.append('infoRecordsFile', state.infoRecordsFile);
+    formData.append('porvFile', state.porvFile);
+    
+    console.log('📤 Uploading:', state.infoRecordsFile.name, state.porvFile.name);
+    
+    // Upload to backend
+    const res = await fetch(`${API_URL}/api/sync/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    console.log('✅ Sync response:', data);
+    
+    if (data.success) {
+      state.syncStatus = {
+        lastSync: data.lastSync || new Date().toISOString(),
+        infoRecords: data.infoRecords || 0,
+        porvData: data.porvData || 0
+      };
+      
+      showToast(`✅ Sync Complete!\n\nInfo Records: ${data.infoRecords} rows\nPORV Data: ${data.porvData} rows`);
+      render();
+    } else {
+      throw new Error(data.error || 'Sync failed');
+    }
+    
+  } catch (error) {
+    console.error('❌ Sync error:', error);
+    showToast('❌ Sync failed: ' + error.message);
+  }
+}
+
 </script>
 </body>
 </html>
