@@ -167,6 +167,7 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 .dot-ok{background:var(--green);}.dot-miss{background:var(--red);}.dot-warn{background:var(--amber);}
 .inline-sig-thumb{max-height:30px;max-width:96px;object-fit:contain;vertical-align:bottom;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="shell" id="app"></div>
@@ -242,7 +243,7 @@ function applyParsedData(rows){
   if(hIdx<0){showToast('No header');return;}
   for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
   state.items=[];
-  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;state.items.push({id:state.items.length,itemCode:f,itemDescription:String(r[1]||'').trim(),vendorCode:String(r[2]||'').trim(),vendorName:String(r[3]||'').trim(),newPrice:parseFloat(r[4])||0,currency:String(r[5]||'INR').trim(),oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const newPr=parseFloat(r[4])||0;const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,newPrice:newPr,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
   state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
@@ -309,7 +310,7 @@ async function sendEnvelope() {
   setTimeout(() => { state.page = 'done'; render(); }, 2000);
 }
 
-function render(){
+function render(){const v=(x)=>x==null||x===undefined?'':x;
   const app=document.getElementById('app');
   const navItems=[{id:'setup',label:'Setup',icon:'⚙️'},{id:'upload',label:'Upload',icon:'📂'},{id:'review',label:'Review & Preview',icon:'👁'},{id:'signers',label:'Signatories',icon:'✍'},{id:'send',label:'Send Envelope',icon:'📤'},{id:'done',label:'Complete',icon:'✅'}];
   const order=['setup','upload','review','signers','send','done'];
@@ -354,7 +355,7 @@ function renderSetup(){
     <div class="card-body">
       <div class="setup-grid">
         <div>
-          <label>Your Outlook Email (Sender)</label>
+          <label>TKEI Email (No-Reply Automated)</label>
           <input class="input" id="adminEmailInput" type="email" placeholder="you@company.com" value="${state.adminEmail}"/>
           <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>${hasE?'Configured':'Enter your Outlook address'}</span></div>
         </div>
@@ -384,25 +385,37 @@ function renderSetup(){
 
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
         <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
-          <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>Outlook Email</span></div>
+          <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>TKEI Email</span></div>
           <div class="setup-status"><span class="dot ${hasP?'dot-ok':'dot-miss'}"></span><span>OneDrive Path</span></div>
           <div class="setup-status"><span class="dot ${hasM?'dot-ok':'dot-warn'}"></span><span>Email Permission</span></div>
           <div class="setup-status"><span class="dot ${hasSig?'dot-ok':'dot-warn'}"></span><span>Admin Signature</span></div>
         </div>
-        <button class="btn btn-primary" onclick="state.page='upload';render()">Continue → Upload</button>
       </div>
     </div>
 
   <div class="card">
     <div class="card-head"><h3>🔄 Database Sync</h3></div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div><label>Info Records</label><input type="file" id="infoF" accept=".xlsx,.xls" style="display:none" onchange="state.infoFile=this.files[0];render()"/><button class="btn btn-ghost" onclick="document.getElementById('infoF').click()" style="width:100%;margin-top:4px;">${state.infoFile?'✅ '+state.infoFile.name.substring(0,20)+'...':'📁 Choose'}</button></div>
-        <div><label>PORV File</label><input type="file" id="porvF" accept=".xlsx,.xls" style="display:none" onchange="state.porvFile=this.files[0];render()"/><button class="btn btn-ghost" onclick="document.getElementById('porvF').click()" style="width:100%;margin-top:4px;">${state.porvFile?'✅ '+state.porvFile.name.substring(0,20)+'...':'📁 Choose'}</button></div>
+      <div style="margin-bottom:16px;">
+        <label>Info Records</label>
+        <input type="file" id="infoF" accept=".xlsx,.xls" style="display:none" onchange="state.infoFile=this.files[0];render()"/>
+        <button class="btn btn-ghost" onclick="document.getElementById('infoF').click()" style="width:100%;margin-top:4px;">${state.infoFile?'✅ '+state.infoFile.name.substring(0,25)+'...':'📁 Choose File'}</button>
+        <button class="btn btn-primary btn-sm" onclick="syncInfoRecords()" style="width:100%;margin-top:8px;" ${!state.infoFile?'disabled':''}>🔄 Sync Info Records</button>
+        ${state.syncStatus&&state.syncStatus.info?'<div style="margin-top:6px;padding:6px;background:var(--green-dim);border-radius:4px;font-size:0.85rem;"><strong>'+state.syncStatus.info.toLocaleString()+'</strong> rows synced</div>':''}
       </div>
-      <button class="btn btn-primary" onclick="syncDB()" style="width:100%;" ${!state.infoFile||!state.porvFile?'disabled':''}>🔄 Sync</button>
+      <div style="margin-bottom:16px;">
+        <label>PORV File</label>
+        <input type="file" id="porvF" accept=".xlsx,.xls" style="display:none" onchange="state.porvFile=this.files[0];render()"/>
+        <button class="btn btn-ghost" onclick="document.getElementById('porvF').click()" style="width:100%;margin-top:4px;">${state.porvFile?'✅ '+state.porvFile.name.substring(0,25)+'...':'📁 Choose File'}</button>
+        <button class="btn btn-primary btn-sm" onclick="syncPORV()" style="width:100%;margin-top:8px;" ${!state.porvFile?'disabled':''}>🔄 Sync PORV</button>
+        ${state.syncStatus&&state.syncStatus.porv?'<div style="margin-top:6px;padding:6px;background:var(--green-dim);border-radius:4px;font-size:0.85rem;"><strong>'+state.syncStatus.porv.toLocaleString()+'</strong> rows synced</div>':''}
+      </div>
       ${state.syncStatus?'<div style="margin-top:10px;padding:10px;background:var(--green-dim);border-radius:6px;"><strong>'+state.syncStatus.info.toLocaleString()+'</strong> info, <strong>'+state.syncStatus.porv.toLocaleString()+'</strong> PORV</div>':''}
     </div>
+  </div>
+  
+  <div style="text-align:center;margin-top:24px;">
+    <button class="btn btn-primary" onclick="state.page='upload';render()">Continue → Upload</button>
   </div>
   </div>`;
 }
@@ -410,55 +423,43 @@ function renderSetup(){
 // ═══ 1. UPLOAD ═══
 function renderUpload(){
   return `
-  <div class="info-box">📋 Upload Excel (.xlsx) or CSV. Category, checkboxes, and items are parsed automatically.</div>
-  <div class="card">
-    <div class="card-head"><h3>📂 Upload Input File</h3></div>
-    <div class="card-body">
-      <div class="drop-zone" id="dropZone"><input type="file" id="fileInput" accept=".xlsx,.xls,.csv"/><div class="icon">📁</div><p><strong style="color:var(--accent)">Click or drag &amp; drop</strong><br>Excel (.xlsx) or CSV</p></div>
-    </div>
-  </div
-
-  <div class="card">
-    <div class="card-head">
-      <h3>📚 Large File Import Guide</h3>
-      <span class="badge badge-orange">For 50k+ rows</span>
-    </div>
-    <div class="card-body">
-      <p class="dim" style="margin-bottom:12px;">Files over 50,000 rows must be imported directly to Supabase due to server timeout limits.</p>
-      <details style="margin-bottom:12px;">
-        <summary style="cursor:pointer;font-weight:600;color:var(--accent);">📖 Show Step-by-Step Guide</summary>
-        <div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:6px;">
-          <h4 style="margin:0 0 8px 0;">Step 1: Convert Excel to CSV</h4>
-          <ol style="margin:0 0 12px 0;padding-left:20px;">
-            <li>Open Info Records Excel file</li>
-            <li>File → Save As → CSV (Comma delimited)</li>
-            <li>Do same for PORV file</li>
-          </ol>
-          <h4 style="margin:0 0 8px 0;">Step 2: Import to Supabase</h4>
-          <ol style="margin:0 0 12px 0;padding-left:20px;">
-            <li>Go to <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--accent);">Supabase Dashboard</a></li>
-            <li>Table Editor → <strong>info_records</strong></li>
-            <li>Click "Insert" → "Import data from CSV"</li>
-            <li>Upload Info Records CSV</li>
-            <li>Map columns: Material → material_number, Supplier → vendor_account_number, etc.</li>
-          </ol>
-          <h4 style="margin:0 0 8px 0;">Step 3: Import PORV</h4>
-          <ol style="margin:0;padding-left:20px;">
-            <li>Table Editor → <strong>porv_data</strong></li>
-            <li>Import PORV CSV</li>
-            <li>Map: Material(GMDS) → item_code, Vendor ID → vendor_id</li>
-          </ol>
+  <div class="info-box">📋 Upload Excel: Choose pre-calculated (12 columns) or standard (6 columns)</div>
+  
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+    
+    <div class="card">
+      <div class="card-head">
+        <h3>📊 Ready Cost Approval - Upload for Signatures</h3>
+        <span class="badge badge-green">12 columns</span>
+      </div>
+      <div class="card-body">
+        <p class="dim" style="margin-bottom:12px;">Upload calculation-complete file</p>
+        <div class="drop-zone" id="dropZonePrecalc" style="min-height:140px;">
+          <input type="file" id="fileInputPrecalc" accept=".xlsx,.xls"/>
+          <div class="icon">📊</div>
+          <p><strong style="color:var(--accent)">Pre-Calculated Form</strong><br>12 columns required</p>
         </div>
-      </details>
-      <a href="https://supabase.com/dashboard" target="_blank" class="btn btn-ghost" style="width:100%;">🔗 Open Supabase Dashboard</a>
+      </div>
     </div>
+    
+    <div class="card">
+      <div class="card-head">
+        <h3>📂 Upload Input File</h3>
+        <span class="badge badge-blue">6 columns</span>
+      </div>
+      <div class="card-body">
+        <p class="dim" style="margin-bottom:12px;">System calculates Old Price, PORV, Impact</p>
+        <div class="drop-zone" id="dropZone" style="min-height:140px;">
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv"/>
+          <div class="icon">📁</div>
+          <p><strong style="color:var(--accent)">Standard Upload</strong><br>6 columns required</p>
+        </div>
+      </div>
+    </div>
+    
   </div>
->
-  <div class="card">
-    <div class="card-head"><h3>📝 Quick-load sample</h3></div>
-    <div class="card-body"><p class="dim" style="margin-bottom:10px">Two items matching Example_1.</p><button class="btn btn-primary" id="loadSample">Load Sample</button></div>
 
-  ${state.items.length>0?'<div class="card"><div class="card-head"><h3>📊 Items ('+state.items.length+')</h3></div><div class="card-body"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Item</th><th>Desc</th><th>Vendor</th><th class="num">Price</th></tr></thead><tbody>'+state.items.slice(0,10).map(function(it,i){return '<tr><td>'+(i+1)+'</td><td>'+it.itemCode+'</td><td>'+it.itemDescription+'</td><td>'+it.vendorCode+'</td><td class="num">'+it.newPrice.toFixed(2)+'</td></tr>';}).join('')+'</tbody></table></div><button class="btn btn-green btn-sm" onclick="calcItems()" style="width:100%;margin-top:12px;">⚡ Calculate</button></div></div>':''}
+  ${state.items.length>0?'<div class="card"><div class="card-head"><h3>📊 Items ('+state.items.length+')</h3></div><div class="card-body"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Item</th><th>Desc</th><th>Vendor</th><th class="num">Price</th></tr></thead><tbody>'+state.items.slice(0,10).map(function(it,i){return '<tr><td>'+(i+1)+'</td><td>'+it.item_code+'</td><td>'+(it.item_description||'')+'</td><td>'+it.vendor_code+'</td><td class="num">'+(it.new_price||0).toFixed(2)+'</td></tr>';}).join('')+'</tbody></table></div><button class="btn btn-green btn-sm" onclick="calcItems()" style="width:auto;padding:8px 24px;margin:12px auto 0;display:block;">⚡ Calculate</button></div></div>':''}
   </div>`;
 }
 
@@ -483,7 +484,7 @@ function renderReview(){
   <div class="card">
     <div class="card-head"><h3>📊 Item Table</h3><span class="badge badge-blue">${state.items.length} items</span></div>
     <div class="card-body" style="padding:0;"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:200px">Description</th><th class="num">New Price</th><th class="num">Old Price</th><th class="num">Price Diff</th><th class="num">% Diff</th><th class="num">Yearly Vol</th><th class="num">Cost Impact</th></tr></thead><tbody>
-    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.fsItemCode}</td><td>${it.itemCode}</td><td style="color:var(--text)">${it.desc}</td><td class="num"><input type="number" class="inp-new" data-i="${i}" value="${it.newPrice}" step="0.01"/></td><td class="num"><input type="number" class="inp-old" data-i="${i}" value="${it.oldPrice}" step="0.01"/></td><td class="num" style="color:${it.priceDiff>=0?'var(--red)':'var(--green)'}">${fmt(it.priceDiff)}</td><td class="num" style="color:${it.pctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(it.pctDiff)}</td><td class="num"><input type="number" class="inp-vol" data-i="${i}" value="${it.yearlyVol}" step="1"/></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
+    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td style="color:var(--text)">${it.item_description||""}</td><td class="num"><input type="text" class="inp-new" data-i="${i}" value="${it.new_price||0}" oninput="recalcRow(${i})" step="0.01"/></td><td class="num"><input type="text" class="inp-old" data-i="${i}" value="${it.old_price||0}" oninput="recalcRow(${i})" step="0.01"/></td><td class="num" style="color:${it.priceDiff>=0?'var(--red)':'var(--green)'}">${fmt(it.priceDiff)}</td><td class="num" style="color:${it.pctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(it.pctDiff)}</td><td class="num"><input type="text" class="inp-vol" data-i="${i}" value="${it.porv_qty||0}" oninput="recalcRow(${i})" step="1"/></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
     </tbody></table>
     <div class="tbl-summary"><div>AVG % Diff: <strong style="color:${t.avgPctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(t.avgPctDiff)}</strong></div><div>Total Yearly Vol: <strong>${t.totalVol}</strong></div><div>Yearly Impact: <strong style="color:${t.totalImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.totalImpact)}</strong></div><div>Quarterly (INR): <strong style="color:${t.quarterlyImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.quarterlyImpact)}</strong></div></div>
     </div></div>
@@ -497,7 +498,7 @@ function renderReview(){
 function renderPDFPage1(){
   const t=calcTotals(),cb=getCheckedBy();
   const d2=state.items.slice(0,2);
-  const totalD=d2.reduce((a,i)=>a+i.priceDiff,0);
+  const totalD=d2.reduce((a,i)=>a+(i.price_diff||i.priceDiff||0),0);
   function cg(opts,checked){return opts.map(o=>`<div class="chk-line"><span class="pdf-chk ${checked.includes(o)?'on':''}">${checked.includes(o)?'✓':''}</span>${o}</div>`).join('');}
   const sigSlots=[{id:1,label:'Prepared By',name:'Sohail Shaikh'},{id:2,label:'Checked By',name:cb.name||'—'},{id:3,label:'Approved By',name:'VP Purchase'},{id:4,label:'Approved By',name:'Finance Controller'}];
   return `
@@ -517,7 +518,7 @@ function renderPDFPage1(){
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
     <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
-    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.itemCode}</td><td style="max-width:110px">${it.desc}</td><td class="num">${fmt(it.oldPrice)}</td><td class="num">${fmt(it.newPrice)}</td><td class="num" style="color:${it.priceDiff>=0?'#c0392b':'#27ae60'}">${fmt(it.priceDiff)}</td><td class="num">1</td><td class="num" style="color:${it.priceDiff>=0?'#c0392b':'#27ae60'}">${fmt(it.priceDiff)}</td></tr>`).join('')}
+    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.item_code}</td><td style="max-width:110px">${it.item_description||""}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">1</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td></tr>`).join('')}
     <tr style="background:#f0f3f8;font-weight:700"><td colspan="8" style="text-align:right">Total</td><td class="num" style="color:${totalD>=0?'#c0392b':'#27ae60'}">${fmt(totalD)}</td></tr>
     </tbody></table>
     <div style="font-size:.6rem;color:#999;text-align:right;margin-top:2px">All Costs are in INR</div>
@@ -540,7 +541,7 @@ function renderPDFPage2(){
     <div class="pdf-row"><b>Vendor Code</b><span>${state.vendorCode}</span></div>
     <div class="pdf-row"><b>Vendor Name</b><span>${state.vendor}</span></div>
     <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
-    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.fsItemCode}</td><td>${it.itemCode}</td><td>${it.desc}</td><td class="num">${fmt(it.newPrice)}</td><td class="num">${fmt(it.oldPrice)}</td><td class="num" style="color:${it.priceDiff>=0?'#c0392b':'#27ae60'}">${fmt(it.priceDiff)}</td><td class="num">${fmtPct(it.pctDiff)}</td><td class="num">${it.yearlyVol}</td><td class="num" style="color:${it.costImpact>=0?'#c0392b':'#27ae60'}">${fmt(it.costImpact)}</td></tr>`).join('')}
+    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td>${it.item_description||""}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
     </tbody></table>
     <div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:6px;font-size:.72rem;gap:2px;">
       <div style="border-top:2px solid #222;padding-top:5px;display:flex;gap:34px;"><div><b>Avg % Price Diff:</b> ${fmtPct(t.avgPctDiff)}</div><div><b>Total Yearly Vol:</b> ${t.totalVol}</div></div>
@@ -766,7 +767,132 @@ function resetAll(){
 render();
 
 async function syncDB(){if(!state.infoFile||!state.porvFile){showToast('Select both files');return;}showToast('📤 Syncing...');try{const fd=new FormData();fd.append('infoRecordsFile',state.infoFile);fd.append('porvFile',state.porvFile);const res=await fetch(API_URL+'/api/sync/upload',{method:'POST',body:fd});const data=await res.json();if(data.success){state.syncStatus={info:data.infoRecords,porv:data.porvData};alert('✅ Synced!\n\nInfo: '+data.infoRecords+'\nPORV: '+data.porvData);render();}else{throw new Error(data.error);}}catch(e){showToast('❌ '+e.message);}}
-async function calcItems(){if(!state.items.length){showToast('No items');return;}showToast('⚡ Calculating...');try{const res=await fetch(API_URL+'/api/forms/calculate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.items})});const data=await res.json();if(data.success&&data.items){state.items=data.items;showToast('✅ Done!');setTimeout(function(){state.page='review';render();},500);}else{throw new Error(data.error);}}catch(e){showToast('❌ '+e.message);}}
+async function calcItems(){
+  if(!state.items.length){showToast('No items');return;}
+  const overlay=document.createElement('div');
+  overlay.style='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML='<div style="background:var(--card);padding:32px;border-radius:8px;text-align:center;"><h3 style="color:#fff;margin:0 0 12px;">⏳ Creating Form...</h3><p style="color:var(--text-dim);margin:0;">Calculating prices and impact</p></div>';
+  document.body.appendChild(overlay);
+  try{
+    const res=await fetch(API_URL+'/api/forms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.items})});
+    const data=await res.json();
+    if(data.success){
+      state.formNumber=data.formNumber;
+      state.items=data.items;
+      document.body.removeChild(overlay);
+      showToast('✅ Form '+data.formNumber+' created');
+      setTimeout(function(){state.page='review';render();},500);
+    }else{throw new Error(data.error);}
+  }catch(e){
+    if(overlay.parentNode)document.body.removeChild(overlay);
+    showToast('❌ '+e.message);
+  }
+}
+
+async function syncPORV(){
+  if(!state.porvFile){showToast('Select PORV file');return;}
+  showToast('📤 Syncing PORV...');
+  try{
+    const fd=new FormData();
+    fd.append('porvFile',state.porvFile);
+    const res=await fetch(API_URL+'/api/sync/upload',{method:'POST',body:fd});
+    if(!res.ok){throw new Error('HTTP '+res.status);}
+    const data=await res.json();
+    if(data.success){
+      if(!state.syncStatus)state.syncStatus={};
+      state.syncStatus.porv=data.porvData;
+      showToast('✅ PORV synced: '+data.porvData+' rows');
+      render();
+    }else{throw new Error(data.error||'Sync failed');}
+  }catch(e){showToast('❌ '+e.message);}
+}
+
+
+// Precalc file upload handler
+async function handlePrecalcUpload(file){
+  if(!file)return;
+  showToast('📖 Reading file...');
+  try{
+    const data=await file.arrayBuffer();
+    const wb=XLSX.read(data);
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+    let hIdx=-1;
+    for(let i=0;i<rows.length;i++){
+      if(rows[i].some(c=>String(c).toLowerCase().includes('item code'))){hIdx=i;break;}
+    }
+    if(hIdx===-1){showToast('❌ Header not found');return;}
+    
+    const formNum=await getNextFormNumber();
+    
+    state.items=[];
+    for(let i=hIdx+1;i<rows.length;i++){
+      const r=rows[i];
+      if(!r[0])continue;
+      const itemCode=String(r[0]||'').trim();
+      const vendorCode=String(r[2]||'').trim();
+      state.items.push({
+        id:formNum+'_'+itemCode+'_'+vendorCode,
+        form_number:formNum,
+        item_code:itemCode,
+        item_description:String(r[1]||'').trim(),
+        vendor_code:vendorCode,
+        vendor_name:String(r[3]||'').trim(),
+        new_price:parseFloat(r[4])||0,
+        currency:String(r[5]||'INR').trim(),
+        old_price:parseFloat(r[6])||0,
+        price_diff:parseFloat(r[7])||0,
+        percent_diff:parseFloat(r[8])||0,
+        porv_qty:parseFloat(r[9])||0,
+        impact:parseFloat(r[10])||0,
+        remarks:String(r[11]||'Pre-calculated').trim()
+      });
+    }
+    
+    const overlay=document.createElement('div');
+    overlay.style='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML='<div style="background:var(--card);padding:32px;border-radius:8px;"><h3 style="color:#fff;margin:0;">⏳ Uploading...</h3></div>';
+    document.body.appendChild(overlay);
+    
+    const res=await fetch(API_URL+'/api/forms/upload-precalc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.items})});
+    const result=await res.json();
+    document.body.removeChild(overlay);
+    
+    if(result.success){
+      state.formNumber=result.formNumber;
+      state.items=result.items;
+      showToast('✅ Form '+result.formNumber);
+      setTimeout(()=>{state.page='review';render();},500);
+    }else{throw new Error(result.error);}
+  }catch(e){showToast('❌ '+e.message);console.error(e);}
+}
+
+async function getNextFormNumber(){
+  const today=new Date();
+  const y=today.getFullYear();
+  const m=String(today.getMonth()+1).padStart(2,'0');
+  const d=String(today.getDate()).padStart(2,'0');
+  return y+'_'+m+'_'+d+'_1';
+}
+
+// Setup file inputs after each render
+const _render=render;
+render=function(){
+  _render();
+  setTimeout(()=>{
+    const pc=document.getElementById('fileInputPrecalc');
+    if(pc){
+      pc.onchange=e=>handlePrecalcUpload(e.target.files[0]);
+      const pz=document.getElementById('dropZonePrecalc');
+      if(pz){
+        pz.onclick=()=>pc.click();
+        pz.ondragover=e=>{e.preventDefault();pz.style.borderColor='var(--accent)';};
+        pz.ondragleave=()=>{pz.style.borderColor='var(--border)';};
+        pz.ondrop=e=>{e.preventDefault();pz.style.borderColor='var(--border)';handlePrecalcUpload(e.dataTransfer.files[0]);};
+      }
+    }
+  },100);
+};
 
 </script>
 </body>
