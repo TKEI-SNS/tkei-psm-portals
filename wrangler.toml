@@ -3,3 +3,10 @@ compatibility_date = "2026-03-31"
 
 [site]
 bucket = "./public"
+name = "your-worker"
+compatibility_date = "2026-03-31"
+assets.directory = "./dist"
+
+# For dynamic form handling
+[[compatibility_flags]]
+name = "nodejs_compat"
