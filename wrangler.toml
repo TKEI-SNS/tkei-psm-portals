@@ -1,5 +1,3 @@
-main = "workers-site/index.js"
+name = "your-worker-name"
 compatibility_date = "2026-03-31"
-
-[site]
-bucket = "./public"
+assets.directory = "./public"
