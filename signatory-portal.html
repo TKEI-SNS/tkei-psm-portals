@@ -749,7 +749,7 @@ body {
 
 </style>
 </head>
-<body>
+<body><div id="app"></div>
 
 <div class="container" id="mainContainer">
   <div style="text-align:center; padding:100px 40px; color:#6b7280;">
@@ -759,30 +759,37 @@ body {
 </div>
 
 <script>
-let state = {formNumber:'',items:[],signers:[]};
+const state={formNumber:'',items:[]};
 
 function render(){
-  document.getElementById('app').innerHTML='<div style="padding:40px;text-align:center;"><h2>Form: '+state.formNumber+'</h2><p>Items: '+state.items.length+'</p></div>';
+  const app=document.getElementById('app');
+  if(!app)return;
+  app.innerHTML='<div style="padding:40px;text-align:center;font-family:Arial;"><h1>Form: '+state.formNumber+'</h1><p>Items: '+state.items.length+'</p></div>';
 }
 
-const urlParams=new URLSearchParams(window.location.search);
-const formNumber=urlParams.get('form');
-console.log('Form param:',formNumber);
+const form=new URLSearchParams(window.location.search).get('form');
+console.log('Loading:',form);
 
-if(formNumber){
-  fetch('https://tkei-psm-backend.onrender.com/api/forms/'+formNumber)
+if(form){
+  fetch('https://tkei-psm-backend.onrender.com/api/forms/'+form)
     .then(r=>r.json())
-    .then(data=>{
-      console.log('Data:',data);
-      if(data.success){
-        state.formNumber=data.formNumber;
-        state.items=data.items;
+    .then(d=>{
+      console.log('Got:',d);
+      if(d.success){
+        state.formNumber=d.formNumber;
+        state.items=d.items||[];
         render();
+      }else{
+        document.getElementById('app').innerHTML='<div style="padding:40px;color:red;">Error: '+d.error+'</div>';
       }
     })
-    .catch(err=>console.error(err));
+    .catch(e=>{
+      console.error(e);
+      document.getElementById('app').innerHTML='<div style="padding:40px;color:red;">Failed: '+e.message+'</div>';
+    });
+}else{
+  document.getElementById('app').innerHTML='<div style="padding:40px;color:red;">No form number in URL</div>';
 }
-</script></script>
-
+</script>
 </body>
 </html>
