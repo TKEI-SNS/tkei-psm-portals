@@ -167,7 +167,34 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 .dot-ok{background:var(--green);}.dot-miss{background:var(--red);}.dot-warn{background:var(--amber);}
 .inline-sig-thumb{max-height:30px;max-width:96px;object-fit:contain;vertical-align:bottom;}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+function renderTracker(){
+  const forms = state.trackerForms || [];
+  let table = '';
+  if(forms.length > 0) {
+    table = '<div class="tbl-wrap"><table><thead><tr><th>Form #</th><th>Created</th><th>Signers</th><th>Signed</th><th>Status</th></tr></thead><tbody>';
+    for(let f of forms) {
+      const status = f.signedCount >= f.totalSigners ? 'Complete' : 'Pending';
+      const badge = f.signedCount >= f.totalSigners ? 'badge-green' : 'badge-orange';
+      table += '<tr><td>'+f.formNumber+'</td><td>'+new Date(f.createdAt).toLocaleDateString()+'</td><td>'+f.totalSigners+'</td><td>'+f.signedCount+'/'+f.totalSigners+'</td><td><span class="badge '+badge+'">'+status+'</span></td></tr>';
+    }
+    table += '</tbody></table></div>';
+  } else {
+    table = '<p class="dim">No forms found</p>';
+  }
+  
+  return '<div class="card"><div class="card-head"><h3>📊 Forms Tracker</h3></div><div class="card-body"><button class="btn btn-primary" onclick="loadTracker()">🔄 Refresh</button><div id="trackerData" style="margin-top:16px;">'+table+'</div></div></div>';
+}
+
+async function loadTracker(){
+  try{
+    const res=await fetch(API_URL+'/api/forms/tracker/all');
+    const data=await res.json();
+    if(data.success){state.trackerForms=data.forms;render();}
+  }catch(e){showToast('❌ '+e.message);}
+}
+
+</script>
 </head>
 <body>
 <div class="shell" id="app"></div>
@@ -202,7 +229,17 @@ const state={
 // ── helpers ──
 function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
 function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
-function calcRow(it){it.priceDiff=(it.newPrice||0)-(it.oldPrice||0);it.pctDiff=it.oldPrice?(it.priceDiff/it.oldPrice)*100:0;it.costImpact=it.priceDiff*(it.yearlyVol||0);}
+function calcRow(it){
+  // Normalise field aliases: precalc uploads use snake_case, manual entries use camelCase
+  const np=parseFloat(it.new_price||it.newPrice||0);
+  const op=parseFloat(it.old_price||it.oldPrice||0);
+  const vol=parseFloat(it.porv_qty||it.yearlyVol||0);
+  it.newPrice=np; it.oldPrice=op; it.yearlyVol=vol;
+  it.new_price=np; it.old_price=op; it.porv_qty=vol;
+  it.priceDiff=np-op; it.price_diff=it.priceDiff;
+  it.pctDiff=op?(it.priceDiff/op)*100:0; it.percent_diff=it.pctDiff;
+  it.costImpact=it.priceDiff*vol; it.impact=it.costImpact;
+}
 function calcTotals(){let ti=0,tv=0,sp=0,cnt=0;state.items.forEach(it=>{calcRow(it);ti+=it.costImpact||0;tv+=it.yearlyVol||0;if(it.oldPrice){sp+=it.pctDiff||0;cnt++;}});return{avgPctDiff:cnt?sp/cnt:0,totalVol:tv,totalImpact:ti,quarterlyImpact:ti/4};}
 function showToast(msg){state.toast=msg;render();setTimeout(()=>{state.toast=null;render();},2600);}
 function toggle(arr,val){const i=arr.indexOf(val);if(i>=0)arr.splice(i,1);else arr.push(val);}
@@ -288,26 +325,43 @@ async function sendEnvelope() {
     return;
   }
   
-  showToast('📧 Sending envelope...');
+  showToast('📤 Sending emails...');
   
-  // Mark signers as 'pending' (email sent)
-  if(state.sequential) {
-    // Sequential: only first gets 'pending'
-    if(state.signers[0]) state.signers[0].status = 'pending';
-  } else {
-    // Parallel: all get 'pending'
-    state.signers.forEach(s => { if(s.status === 'waiting') s.status = 'pending'; });
+  try {
+    // Send email to each signatory
+    for(let i = 0; i < state.signers.length; i++) {
+      const signer = state.signers[i];
+      
+      const formLink = window.location.href.split('?')[0] + '?form=' + (state.formNumber || state.formNo);
+      
+      const res = await fetch(API_URL + '/api/send-email', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          to: signer.email,
+          formNo: state.formNumber || state.formNo,
+          formLink: formLink,
+          signerName: signer.name,
+          signerRole: signer.role
+        })
+      });
+      
+      const data = await res.json();
+      if(!data.success) throw new Error(data.error);
+      
+      // Update signer status
+      state.signers[i].status = 'pending';
+      
+      console.log('✅ Email sent to:', signer.email);
+    }
+    
+    showToast('✅ Emails sent to all signatories');
+    setTimeout(() => { state.page = 'done'; render(); }, 1500);
+    
+  } catch(e) {
+    showToast('❌ Email error: ' + e.message);
+    console.error('Email error:', e);
   }
-  
-  // Simulate email send (in production: call MS Graph API)
-  for(const s of state.signers.filter(s => s.status === 'pending')) {
-    const token = `form${state.formNo}_s${s.id}_${Date.now()}`;
-    console.log(`📧 Would email ${s.email} with signing link: signing-portal-final.html?token=${token}`);
-    state.emailedSigners[s.id] = {token, sentAt: new Date().toISOString()};
-  }
-  
-  showToast(`✉️ Envelope sent to ${state.signers.filter(s=>s.status==='pending').length} signatories!`);
-  setTimeout(() => { state.page = 'done'; render(); }, 2000);
 }
 
 function render(){const v=(x)=>x==null||x===undefined?'':x;
@@ -343,7 +397,7 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
   if(state.modal&&state.modal.type==='sigpad')setTimeout(initPad,50);
 }
 
-function renderPage(){return{setup:renderSetup,upload:renderUpload,review:renderReview,signers:renderSigners,send:renderSend,done:renderDone}[state.page]();}
+function renderPage(){return{setup:renderSetup,upload:renderUpload,review:renderReview,signers:renderSigners,send:renderSend,tracker:renderTracker,done:renderDone}[state.page]();}
 
 // ═══ 0. SETUP ═══
 function renderSetup(){
@@ -388,7 +442,7 @@ function renderSetup(){
           <div class="setup-status"><span class="dot ${hasE?'dot-ok':'dot-miss'}"></span><span>TKEI Email</span></div>
           <div class="setup-status"><span class="dot ${hasP?'dot-ok':'dot-miss'}"></span><span>OneDrive Path</span></div>
           <div class="setup-status"><span class="dot ${hasM?'dot-ok':'dot-warn'}"></span><span>Email Permission</span></div>
-          <div class="setup-status"><span class="dot ${hasSig?'dot-ok':'dot-warn'}"></span><span>Admin Signature</span></div>
+          <div class="setup-status"><span class="dot ${hasSig?'dot-ok':'dot-warn'}"></span><span>Admin Setup</span></div>
         </div>
       </div>
     </div>
@@ -474,6 +528,23 @@ function renderReview(){
         <div class="cat-pills"><div class="cat-pill ${state.category==='ELECTRICAL'?'active':''}" data-cat="ELECTRICAL">⚡ Electrical</div><div class="cat-pill ${state.category==='MECHANICAL'?'active':''}" data-cat="MECHANICAL">⚙️ Mechanical</div></div>
         <p class="dim" style="margin-top:6px">Checked By → <strong style="color:var(--accent)">${cb.name||'—'}</strong></p>
       </div>
+      <div style="margin-bottom:16px;">
+        <label>Details of Change (Minimum 6 characters)</label>
+        <div style="margin-bottom:16px;">
+        <label>Product Line Impacted</label>
+        <input type="text" id="productLineInput" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="e.g., All" value="${state.productLine||'All'}" onchange="state.productLine=this.value;render();"/>
+      </div>
+      <textarea id="detailsInput" rows="2" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="Enter details of change..." onchange="state.detailsOfChange=this.value;render();">${state.detailsOfChange||''}</textarea>
+      </div>
+            <div style="margin-bottom:16px;">
+        <label>Details of Change <span style="color:var(--red)">*</span> (Min 6 characters)</label>
+        <textarea id="detailsInput" rows="2" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="Enter details of change (min 6 chars)..." oninput="state.detailsOfChange=this.value;render();">${state.detailsOfChange||''}</textarea>
+        ${(state.detailsOfChange||'').length<6?'<p style="color:var(--red);font-size:0.85rem;margin:4px 0 0;">Required: Minimum 6 characters</p>':''}
+      </div>
+      <div style="margin-bottom:16px;">
+        <label>Product Line Impacted</label>
+        <input type="text" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="e.g., All" value="${state.productLine||'All'}" oninput="state.productLine=this.value;render();"/>
+      </div>
       <div class="meta-grid">
         <div class="meta-col"><div class="meta-col-label"><span class="dot" style="background:var(--accent)"></span>Pricing</div><div class="chk-list">${PRICING_OPTIONS.map(o=>`<div class="chk-row" data-grp="pricing" data-val="${o}"><div class="chk-box ${state.pricingChecks.includes(o)?'on':''}"></div><span>${o}</span></div>`).join('')}</div></div>
         <div class="meta-col"><div class="meta-col-label"><span class="dot" style="background:var(--green)"></span>Quality / PDC</div><div class="chk-list">${QUALITY_OPTIONS.map(o=>`<div class="chk-row" data-grp="quality" data-val="${o}"><div class="chk-box ${state.qualityChecks.includes(o)?'on':''}"></div><span>${o}</span></div>`).join('')}</div></div>
@@ -491,7 +562,7 @@ function renderReview(){
   </div>
   <div class="card"><div class="card-head"><h3>📄 PDF Page 1 — Cost Approval Form</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage1()}</div></div>
   <div class="card"><div class="card-head"><h3>📄 PDF Page 2 — Annexure (Full Table)</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage2()}</div></div>
-  <div class="flex-end mt"><button class="btn btn-primary" onclick="state.page='signers';render()">Continue → Signatories</button></div>`;
+  <div class="flex-end mt"><button class="btn btn-primary" onclick="if((state.detailsOfChange||'').length<6){showToast('❌ Details of Change: Min 6 characters');return;}state.page='signers';render()">Continue → Signatories</button></div>`;
 }
 
 // ═══ PDF PAGE 1 ─── TKE top, 2 rows only, signatures, INR bottom ═══
@@ -504,7 +575,7 @@ function renderPDFPage1(){
   return `
   <div class="pdf-page">
     <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Cost Approval Form</h2><div style="width:30px"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#666;margin-bottom:7px"><span>Form No.: <b>${state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#666;margin-bottom:7px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
     <div class="pdf-row"><b>Initiated By</b><span>Name: ${cb.name||'—'} &nbsp;|&nbsp; Category: ${state.category.charAt(0)+state.category.slice(1).toLowerCase()} &nbsp;|&nbsp; Dept: PSM</span></div>
     <div class="pdf-section-title">Reason of Change</div>
     <div class="pdf-reasons">
@@ -513,8 +584,8 @@ function renderPDFPage1(){
       <div><div class="grp-lbl">Part Type</div>${cg(PARTTYPE_OPTIONS,state.partTypeChecks)}</div>
     </div>
     <div class="pdf-row"><b>Supplier</b><span>${state.vendorCode} — ${state.vendor}</span></div>
-    <div class="pdf-row"><b>Details of Change</b><span>NEW ITEMS</span></div>
-    <div class="pdf-row"><b>Product Line Impacted</b><span>NEW ITEMS</span></div>
+    <div class="pdf-row"><b>Details of Change</b><span>${state.detailsOfChange||"NEW ITEMS"}</span></div>
+    <div class="pdf-row"><b>Product Line Impacted</b><span>${state.productLine||"All"}</span></div>
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
     <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
@@ -537,7 +608,7 @@ function renderPDFPage2(){
   return `
   <div class="pdf-page">
     <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Annexure — Item Price Details</h2><div style="width:30px"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#666;margin-bottom:6px"><span>Form No.: <b>${state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#666;margin-bottom:6px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
     <div class="pdf-row"><b>Vendor Code</b><span>${state.vendorCode}</span></div>
     <div class="pdf-row"><b>Vendor Name</b><span>${state.vendor}</span></div>
     <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
@@ -811,7 +882,7 @@ async function syncPORV(){
 // Precalc file upload handler
 async function handlePrecalcUpload(file){
   if(!file)return;
-  showToast('📖 Reading file...');
+  showToast('📖 Reading...');
   try{
     const data=await file.arrayBuffer();
     const wb=XLSX.read(data);
@@ -822,46 +893,36 @@ async function handlePrecalcUpload(file){
       if(rows[i].some(c=>String(c).toLowerCase().includes('item code'))){hIdx=i;break;}
     }
     if(hIdx===-1){showToast('❌ Header not found');return;}
-    
-    const formNum=await getNextFormNumber();
-    
     state.items=[];
     for(let i=hIdx+1;i<rows.length;i++){
       const r=rows[i];
       if(!r[0])continue;
-      const itemCode=String(r[0]||'').trim();
-      const vendorCode=String(r[2]||'').trim();
       state.items.push({
-        id:formNum+'_'+itemCode+'_'+vendorCode,
-        form_number:formNum,
-        item_code:itemCode,
+        item_code:String(r[0]||'').trim(),
         item_description:String(r[1]||'').trim(),
-        vendor_code:vendorCode,
+        vendor_code:String(r[2]||'').trim(),
         vendor_name:String(r[3]||'').trim(),
         new_price:parseFloat(r[4])||0,
-        currency:String(r[5]||'INR').trim(),
-        old_price:parseFloat(r[6])||0,
-        price_diff:parseFloat(r[7])||0,
-        percent_diff:parseFloat(r[8])||0,
-        porv_qty:parseFloat(r[9])||0,
-        impact:parseFloat(r[10])||0,
-        remarks:String(r[11]||'Pre-calculated').trim()
+        old_price:parseFloat(r[5])||0,
+        price_diff:parseFloat(r[6])||0,
+        percent_diff:parseFloat(r[7])||0,
+        porv_qty:parseFloat(r[8])||0,
+        impact:parseFloat(r[9])||0,
+        currency:'INR',
+        remarks:'Precalc'
       });
     }
-    
     const overlay=document.createElement('div');
     overlay.style='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
     overlay.innerHTML='<div style="background:var(--card);padding:32px;border-radius:8px;"><h3 style="color:#fff;margin:0;">⏳ Uploading...</h3></div>';
     document.body.appendChild(overlay);
-    
     const res=await fetch(API_URL+'/api/forms/upload-precalc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.items})});
     const result=await res.json();
     document.body.removeChild(overlay);
-    
     if(result.success){
       state.formNumber=result.formNumber;
       state.items=result.items;
-      showToast('✅ Form '+result.formNumber);
+      showToast('✅ '+result.formNumber);
       setTimeout(()=>{state.page='review';render();},500);
     }else{throw new Error(result.error);}
   }catch(e){showToast('❌ '+e.message);console.error(e);}
@@ -893,6 +954,33 @@ render=function(){
     }
   },100);
 };
+
+
+function renderTracker(){
+  const forms = state.trackerForms || [];
+  let table = '';
+  if(forms.length > 0) {
+    table = '<div class="tbl-wrap"><table><thead><tr><th>Form #</th><th>Created</th><th>Signers</th><th>Signed</th><th>Status</th></tr></thead><tbody>';
+    for(let f of forms) {
+      const status = f.signedCount >= f.totalSigners ? 'Complete' : 'Pending';
+      const badge = f.signedCount >= f.totalSigners ? 'badge-green' : 'badge-orange';
+      table += '<tr><td>'+f.formNumber+'</td><td>'+new Date(f.createdAt).toLocaleDateString()+'</td><td>'+f.totalSigners+'</td><td>'+f.signedCount+'/'+f.totalSigners+'</td><td><span class="badge '+badge+'">'+status+'</span></td></tr>';
+    }
+    table += '</tbody></table></div>';
+  } else {
+    table = '<p class="dim">No forms found</p>';
+  }
+  
+  return '<div class="card"><div class="card-head"><h3>📊 Forms Tracker</h3></div><div class="card-body"><button class="btn btn-primary" onclick="loadTracker()">🔄 Refresh</button><div id="trackerData" style="margin-top:16px;">'+table+'</div></div></div>';
+}
+
+async function loadTracker(){
+  try{
+    const res=await fetch(API_URL+'/api/forms/tracker/all');
+    const data=await res.json();
+    if(data.success){state.trackerForms=data.forms;render();}
+  }catch(e){showToast('❌ '+e.message);}
+}
 
 </script>
 </body>
