@@ -1877,6 +1877,39 @@ function showSuccess() {
 window.onload = function() {
   render();
 };
+
+// LOAD FORM DATA
+(function(){
+  const formNum = new URLSearchParams(window.location.search).get('form');
+  console.log('Loading form:', formNum);
+  if(formNum){
+    fetch('https://tkei-psm-backend.onrender.com/api/forms/'+formNum)
+      .then(r=>r.json())
+      .then(d=>{
+        console.log('Received:', d);
+        if(d.success){
+          state.formNumber=d.formNumber;
+          state.formNo=d.formNumber;
+          state.items=d.items.map(it=>({
+            itemCode:it.item_code,
+            itemDesc:it.item_description,
+            vendorCode:it.vendor_code,
+            vendorName:it.vendor_name,
+            newPrice:it.new_price,
+            oldPrice:it.old_price,
+            priceDiff:it.price_diff,
+            percentDiff:it.percent_diff,
+            porvQty:it.porv_qty,
+            impact:it.impact
+          }));
+          console.log('State updated, rendering...');
+          if(typeof render==='function')render();
+        }
+      })
+      .catch(e=>console.error('Load error:',e));
+  }
+})();
+
 </script>
 
 </body>
