@@ -896,7 +896,7 @@ async function handlePrecalcUpload(file){
     state.items=[];
     for(let i=hIdx+1;i<rows.length;i++){
       const r=rows[i];
-      if(!r[0])continue;
+      if(!r[0] || String(r[0]).trim()==='')continue;
       state.items.push({
         item_code:String(r[0]||'').trim(),
         item_description:String(r[1]||'').trim(),
