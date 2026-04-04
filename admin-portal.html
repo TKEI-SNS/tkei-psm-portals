@@ -845,10 +845,12 @@ async function calcItems(){
   overlay.innerHTML='<div style="background:var(--card);padding:32px;border-radius:8px;text-align:center;"><h3 style="color:#fff;margin:0 0 12px;">⏳ Creating Form...</h3><p style="color:var(--text-dim);margin:0;">Calculating prices and impact</p></div>';
   document.body.appendChild(overlay);
   try{
-    const res=await  cleanItems = state.items.map(it => ({
+    const res=await
+    const cleanItems = state.items.map(it => ({
   ...it,
   newPrice: parseFloat(String(it.newPrice).replace(/,/g, ''))
-}))
+}));
+
 
       fetch(API_URL+'/api/forms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.items})});
     const data=await res.json();
