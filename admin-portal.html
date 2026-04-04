@@ -846,13 +846,16 @@ async function calcItems(){
   document.body.appendChild(overlay);
   try{
     const res=await
-    const cleanItems = state.items.map(it => ({
+const cleanItems = state.items.map(it => ({
   ...it,
   newPrice: parseFloat(String(it.newPrice).replace(/,/g, ''))
 }));
 
-
-      fetch(API_URL+'/api/forms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.items})});
+fetch(API_URL + '/api/forms/create', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ items: cleanItems })
+})
     const data=await res.json();
     if(data.success){
       state.formNumber=data.formNumber;
