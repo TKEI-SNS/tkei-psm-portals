@@ -231,10 +231,10 @@ function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
 function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
 function calcRow(it){
   // Normalise field aliases: precalc uploads use snake_case, manual entries use camelCase
-  const np=parseFloat(it.new_price||it.newPrice||0);
+  const np=parseFloat(it.new_price||it.ice||0);
   const op=parseFloat(it.old_price||it.oldPrice||0);
   const vol=parseFloat(it.porv_qty||it.yearlyVol||0);
-  it.newPrice=np; it.oldPrice=op; it.yearlyVol=vol;
+  it.ice=np; it.oldPrice=op; it.yearlyVol=vol;
   it.new_price=np; it.old_price=op; it.porv_qty=vol;
   it.priceDiff=np-op; it.price_diff=it.priceDiff;
   it.pctDiff=op?(it.priceDiff/op)*100:0; it.percent_diff=it.pctDiff;
@@ -280,7 +280,7 @@ function applyParsedData(rows){
   if(hIdx<0){showToast('No header');return;}
   for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
   state.items=[];
-  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const newPrice: parseFloat(String(r[4]).replace(/,/g, ''))||0;const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,newPrice:newPr,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const ice: parseFloat(String(r[4]).replace(/,/g, ''))||0;const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,ice:,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
   state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
@@ -589,7 +589,7 @@ function renderPDFPage1(){
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
     <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
-    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.item_code}</td><td style="max-width:110px">${it.item_description||""}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">1</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td></tr>`).join('')}
+    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.item_code}</td><td style="max-width:110px">${it.item_description||""}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num">${fmt(it.new_price||it.ice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">1</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td></tr>`).join('')}
     <tr style="background:#f0f3f8;font-weight:700"><td colspan="8" style="text-align:right">Total</td><td class="num" style="color:${totalD>=0?'#c0392b':'#27ae60'}">${fmt(totalD)}</td></tr>
     </tbody></table>
     <div style="font-size:.6rem;color:#999;text-align:right;margin-top:2px">All Costs are in INR</div>
@@ -612,7 +612,7 @@ function renderPDFPage2(){
     <div class="pdf-row"><b>Vendor Code</b><span>${state.vendorCode}</span></div>
     <div class="pdf-row"><b>Vendor Name</b><span>${state.vendor}</span></div>
     <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
-    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td>${it.item_description||""}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
+    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td>${it.item_description||""}</td><td class="num">${fmt(it.new_price||it.ice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
     </tbody></table>
     <div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:6px;font-size:.72rem;gap:2px;">
       <div style="border-top:2px solid #222;padding-top:5px;display:flex;gap:34px;"><div><b>Avg % Price Diff:</b> ${fmtPct(t.avgPctDiff)}</div><div><b>Total Yearly Vol:</b> ${t.totalVol}</div></div>
@@ -794,7 +794,7 @@ function bindEvents(){
   // checkboxes
   document.querySelectorAll('.chk-row[data-grp]').forEach(el=>{el.onclick=()=>{toggle(state[{pricing:'pricingChecks',quality:'qualityChecks',parttype:'partTypeChecks'}[el.dataset.grp]],el.dataset.val);render();};});
   // table
-  ['inp-new','inp-old','inp-vol'].forEach(cls=>{document.querySelectorAll('.'+cls).forEach(inp=>{inp.oninput=()=>{const i=parseInt(inp.dataset.i);state.items[i][{['inp-new']:'newPrice',['inp-old']:'oldPrice',['inp-vol']:'yearlyVol'}[cls]]=parseFloat(inp.value)||0;calcRow(state.items[i]);render();};});});
+  ['inp-new','inp-old','inp-vol'].forEach(cls=>{document.querySelectorAll('.'+cls).forEach(inp=>{inp.oninput=()=>{const i=parseInt(inp.dataset.i);state.items[i][{['inp-new']:'ice',['inp-old']:'oldPrice',['inp-vol']:'yearlyVol'}[cls]]=parseFloat(inp.value)||0;calcRow(state.items[i]);render();};});});
   // add signer
   const ab=document.getElementById('addSigner');if(ab)ab.onclick=()=>{const n=document.getElementById('newName').value.trim(),r=document.getElementById('newRole').value.trim(),e=document.getElementById('newEmail').value.trim();if(!n||!e){showToast('Name & Email required');return;}const colors=['#4f8aff','#7c3aed','#f59e0b','#34d399','#f87171','#60a5fa'];state.signers.push({id:Date.now(),name:n,role:r||'Signatory',email:e,status:'waiting',color:colors[state.signers.length%colors.length]});showToast('Added: '+n);render();};
   // remove
@@ -823,8 +823,8 @@ function loadSample(){
   state.vendorCode='3010453056';state.vendor='Shanghai Zhongling Electronics';state.date='2026-02-03';
   state.category='ELECTRICAL';state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=['New Part'];
   state.items=[
-    {id:0,fsItemCode:'1910675981',itemCode:'1910675981',desc:'DSC COP CH1A-A35D8_14 STOPS_79425228-229',newPrice:2494.66,oldPrice:2110,yearlyVol:11,priceDiff:0,pctDiff:0,costImpact:0},
-    {id:1,fsItemCode:'1910675971',itemCode:'1910675971',desc:'DSC COP CH1A-A35D8_17 STOPS_79425225-227',newPrice:2563.23,oldPrice:0,yearlyVol:0,priceDiff:0,pctDiff:0,costImpact:0},
+    {id:0,fsItemCode:'1910675981',itemCode:'1910675981',desc:'DSC COP CH1A-A35D8_14 STOPS_79425228-229',ice:2494.66,oldPrice:2110,yearlyVol:11,priceDiff:0,pctDiff:0,costImpact:0},
+    {id:1,fsItemCode:'1910675971',itemCode:'1910675971',desc:'DSC COP CH1A-A35D8_17 STOPS_79425225-227',ice:2563.23,oldPrice:0,yearlyVol:0,priceDiff:0,pctDiff:0,costImpact:0},
   ];
   state.items.forEach(calcRow);applyCategoryToSigners();state.page='review';showToast('Sample loaded');render();
 }
