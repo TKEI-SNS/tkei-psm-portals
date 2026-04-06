@@ -294,10 +294,43 @@ function applyParsedData(rows){
   for(let i=0;i<rows.length;i++){if(rows[i].some(c=>String(c).toLowerCase().includes('item code'))){hIdx=i;break;}}
   if(hIdx<0){showToast('No header');return;}
   for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
-  state.items=[];
-  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const ice:parseAmount(r[4]);const newprice = parseAmount(r[4]);
-const oldprice = parseAmount(r[5]);const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,ice:,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
-  state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
+  state.items = [];
+for(let i = hIdx + 1; i < rows.length; i++) {
+  const r = rows[i];
+  const f = String(r[0] || '').trim();
+  if (!f || isNaN(f)) break;
+  
+  const itemCode = String(r[0] || '').trim();
+  const itemDesc = String(r[1] || '').trim();
+  const vendCode = String(r[2] || '').trim();
+  const vendName = String(r[3] || '').trim();
+  const ice = parseAmount(r[4]);  // Fixed: removed colon, added =
+  const newprice = parseAmount(r[4]);
+  const oldprice = parseAmount(r[5] || 0);
+  const curr = String(r[5] || 'INR').trim();  // r[5] might be currency or oldprice
+  
+  if (!itemCode) continue;
+  
+  state.items.push({
+    id: state.items.length,
+    itemCode: itemCode,
+    itemDescription: itemDesc,
+    vendorCode: vendCode,
+    vendorName: vendName,
+    ice: ice,  // Fixed: use variable
+    currency: curr,
+    oldPrice: oldprice,  // Use parsed oldprice
+    priceDiff: 0,
+    pctDiff: 0,
+    porv: 0,
+    impact: 0,
+    remarks: ''
+  });
+  calcRow(state.items[state.items.length - 1]);
+}
+state.pricingChecks = [];
+state.qualityChecks = [];
+state.partTypeChecks = [];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
   if(state.items.length){showToast('✅ Loaded — '+state.items.length+' items');}else showToast('No items');
