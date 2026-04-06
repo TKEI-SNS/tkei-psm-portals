@@ -227,18 +227,33 @@ const state={
 };
 
 // ── helpers ──
-function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
+function fmt(n) {if (n === null || isNaN(n)) return '0.00';return parseFloat(n).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});}
 function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
+function parseAmount(str) {if (!str || isNaN(str)) return 0;
+  return parseFloat(String(str).replace(/,/g, '')) || 0;
+}
 function calcRow(it){
   // Normalise field aliases: precalc uploads use snake_case, manual entries use camelCase
-  const np=parseFloat(it.new_price||it.ice||0);
-  const op=parseFloat(it.old_price||it.oldPrice||0);
-  const vol=parseFloat(it.porv_qty||it.yearlyVol||0);
+  const np=parseAmount(it.newprice || it.ice);
+  const op=parseAmount(it.oldprice || it.oldPrice);
+  const vol=parseAmount(it.porvqty || it.yearlyVol);
   it.ice=np; it.oldPrice=op; it.yearlyVol=vol;
   it.new_price=np; it.old_price=op; it.porv_qty=vol;
   it.priceDiff=np-op; it.price_diff=it.priceDiff;
   it.pctDiff=op?(it.priceDiff/op)*100:0; it.percent_diff=it.pctDiff;
   it.costImpact=it.priceDiff*vol; it.impact=it.costImpact;
+}
+  function recalcRow(i) {
+  const inpNew = document.querySelector(`.inp-new[data-i="${i}"]`);
+  const inpOld = document.querySelector(`.inp-old[data-i="${i}"]`);
+  const inpVol = document.querySelector(`.inp-vol[data-i="${i}"]`);
+  
+  if (inpNew) state.items[i].ice = parseAmount(inpNew.value);
+  if (inpOld) state.items[i].oldPrice = parseAmount(inpOld.value);
+  if (inpVol) state.items[i].yearlyVol = parseAmount(inpVol.value);
+  
+  calcRow(state.items[i]);
+  render();
 }
 function calcTotals(){let ti=0,tv=0,sp=0,cnt=0;state.items.forEach(it=>{calcRow(it);ti+=it.costImpact||0;tv+=it.yearlyVol||0;if(it.oldPrice){sp+=it.pctDiff||0;cnt++;}});return{avgPctDiff:cnt?sp/cnt:0,totalVol:tv,totalImpact:ti,quarterlyImpact:ti/4};}
 function showToast(msg){state.toast=msg;render();setTimeout(()=>{state.toast=null;render();},2600);}
@@ -280,7 +295,8 @@ function applyParsedData(rows){
   if(hIdx<0){showToast('No header');return;}
   for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
   state.items=[];
-  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const ice: parseFloat(String(r[4]).replace(/,/g, ''))||0;const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,ice:,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const ice:parseAmount(r[4]);const newprice = parseAmount(r[4]);
+const oldprice = parseAmount(r[5]);const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,ice:,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
   state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
@@ -555,7 +571,9 @@ function renderReview(){
   <div class="card">
     <div class="card-head"><h3>📊 Item Table</h3><span class="badge badge-blue">${state.items.length} items</span></div>
     <div class="card-body" style="padding:0;"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:200px">Description</th><th class="num">New Price</th><th class="num">Old Price</th><th class="num">Price Diff</th><th class="num">% Diff</th><th class="num">Yearly Vol</th><th class="num">Cost Impact</th></tr></thead><tbody>
-    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td style="color:var(--text)">${it.item_description||""}</td><td class="num"><input type="text" class="inp-new" data-i="${i}" value="${it.new_price||0}" oninput="recalcRow(${i})" step="0.01"/></td><td class="num"><input type="text" class="inp-old" data-i="${i}" value="${it.old_price||0}" oninput="recalcRow(${i})" step="0.01"/></td><td class="num" style="color:${it.priceDiff>=0?'var(--red)':'var(--green)'}">${fmt(it.priceDiff)}</td><td class="num" style="color:${it.pctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(it.pctDiff)}</td><td class="num"><input type="text" class="inp-vol" data-i="${i}" value="${it.porv_qty||0}" oninput="recalcRow(${i})" step="1"/></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
+    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td style="color:var(--text)">${it.item_description||""}</td><td class="num"><input type="text" class="inp-new" data-i="${i}" value="${fmt(it.newprice||0)}" oninput="recalcRow(${i})"></td>
+<td class="num"><input type="text" class="inp-old" data-i="${i}" value="${fmt(it.oldprice||0)}" oninput="recalcRow(${i})"></td>
+<td class="num"><input type="text" class="inp-vol" data-i="${i}" value="${(it.porvqty||0).toLocaleString()}" oninput="recalcRow(${i})"></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
     </tbody></table>
     <div class="tbl-summary"><div>AVG % Diff: <strong style="color:${t.avgPctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(t.avgPctDiff)}</strong></div><div>Total Yearly Vol: <strong>${t.totalVol}</strong></div><div>Yearly Impact: <strong style="color:${t.totalImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.totalImpact)}</strong></div><div>Quarterly (INR): <strong style="color:${t.quarterlyImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.quarterlyImpact)}</strong></div></div>
     </div></div>
