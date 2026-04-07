@@ -92,7 +92,7 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 .pdf-section-title{font-size:.79rem;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:3px;margin:11px 0 6px;text-transform:uppercase;letter-spacing:.02em;}
 .pdf-row{display:flex;font-size:.74rem;padding:3px 0;border-bottom:1px solid #eee;}
 .pdf-row b{min-width:120px;color:#444;}
-.pdf-tbl{width:100%;border-collapse:collapse;font-size:.69rem;margin:6px 0;}      
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:.69rem;margin:6px 0;}
 .pdf-tbl th,.pdf-tbl td{border:1px solid #bbb;padding:3px 6px;text-align:left;}
 .pdf-tbl th{background:#f0f3f8;font-weight:700;font-size:.65rem;text-transform:uppercase;}
 .pdf-tbl td.num{text-align:right;}
@@ -199,6 +199,7 @@ async function loadTracker(){
 <body>
 <div class="shell" id="app"></div>
 <script>
+function cleanNum(v){return parseFloat(String(v||0).replace(/,/g,''))||0;}
 const API_URL="https://tkei-psm-backend.onrender.com";
 const TKE_LOGO='data:image/png;base64,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';
 const INR_LOGO='data:image/png;base64,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';
@@ -227,33 +228,18 @@ const state={
 };
 
 // ── helpers ──
-function fmt(n) {if (n === null || isNaN(n)) return '0.00';return parseFloat(n).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});}
+function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
 function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
-function parseAmount(str) {if (!str || isNaN(str)) return 0;
-  return parseFloat(String(str).replace(/,/g, '')) || 0;
-}
 function calcRow(it){
   // Normalise field aliases: precalc uploads use snake_case, manual entries use camelCase
-  const np=parseAmount(it.newprice || it.ice);
-  const op=parseAmount(it.oldprice || it.oldPrice);
-  const vol=parseAmount(it.porvqty || it.yearlyVol);
-  it.ice=np; it.oldPrice=op; it.yearlyVol=vol;
+  const np=parseFloat(it.new_price||it.newPrice||0);
+  const op=parseFloat(it.old_price||it.oldPrice||0);
+  const vol=parseFloat(it.porv_qty||it.yearlyVol||0);
+  it.newPrice=np; it.oldPrice=op; it.yearlyVol=vol;
   it.new_price=np; it.old_price=op; it.porv_qty=vol;
   it.priceDiff=np-op; it.price_diff=it.priceDiff;
   it.pctDiff=op?(it.priceDiff/op)*100:0; it.percent_diff=it.pctDiff;
   it.costImpact=it.priceDiff*vol; it.impact=it.costImpact;
-}
-  function recalcRow(i) {
-  const inpNew = document.querySelector(`.inp-new[data-i="${i}"]`);
-  const inpOld = document.querySelector(`.inp-old[data-i="${i}"]`);
-  const inpVol = document.querySelector(`.inp-vol[data-i="${i}"]`);
-  
-  if (inpNew) state.items[i].ice = parseAmount(inpNew.value);
-  if (inpOld) state.items[i].oldPrice = parseAmount(inpOld.value);
-  if (inpVol) state.items[i].yearlyVol = parseAmount(inpVol.value);
-  
-  calcRow(state.items[i]);
-  render();
 }
 function calcTotals(){let ti=0,tv=0,sp=0,cnt=0;state.items.forEach(it=>{calcRow(it);ti+=it.costImpact||0;tv+=it.yearlyVol||0;if(it.oldPrice){sp+=it.pctDiff||0;cnt++;}});return{avgPctDiff:cnt?sp/cnt:0,totalVol:tv,totalImpact:ti,quarterlyImpact:ti/4};}
 function showToast(msg){state.toast=msg;render();setTimeout(()=>{state.toast=null;render();},2600);}
@@ -294,43 +280,9 @@ function applyParsedData(rows){
   for(let i=0;i<rows.length;i++){if(rows[i].some(c=>String(c).toLowerCase().includes('item code'))){hIdx=i;break;}}
   if(hIdx<0){showToast('No header');return;}
   for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
-  state.items = [];
-for(let i = hIdx + 1; i < rows.length; i++) {
-  const r = rows[i];
-  const f = String(r[0] || '').trim();
-  if (!f || isNaN(f)) break;
-  
-  const itemCode = String(r[0] || '').trim();
-  const itemDesc = String(r[1] || '').trim();
-  const vendCode = String(r[2] || '').trim();
-  const vendName = String(r[3] || '').trim();
-  const ice = parseAmount(r[4]);  
-  const newprice = parseAmount(r[4]);
-  const oldprice = parseAmount(r[5] || 0);
-  const curr = String(r[5] || 'INR').trim();  // r[5] might be currency or oldprice
-  
-  if (!itemCode) continue;
-  
-  state.items.push({
-    id: state.items.length,
-    itemCode: itemCode,
-    itemDescription: itemDesc,
-    vendorCode: vendCode,
-    vendorName: vendName,
-    ice: ice,  // Fixed: use variable
-    currency: curr,
-    oldPrice: oldprice,  // Use parsed oldprice
-    priceDiff: 0,
-    pctDiff: 0,
-    porv: 0,
-    impact: 0,
-    remarks: ''
-  });
-  calcRow(state.items[state.items.length - 1]);
-}
-state.pricingChecks = [];
-state.qualityChecks = [];
-state.partTypeChecks = [];
+  state.items=[];
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const newPr=parseFloat(r[4])||0;const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,newPrice:newPr,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
+  state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
   if(state.items.length){showToast('✅ Loaded — '+state.items.length+' items');}else showToast('No items');
@@ -604,9 +556,7 @@ function renderReview(){
   <div class="card">
     <div class="card-head"><h3>📊 Item Table</h3><span class="badge badge-blue">${state.items.length} items</span></div>
     <div class="card-body" style="padding:0;"><div class="tbl-wrap"><table><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:200px">Description</th><th class="num">New Price</th><th class="num">Old Price</th><th class="num">Price Diff</th><th class="num">% Diff</th><th class="num">Yearly Vol</th><th class="num">Cost Impact</th></tr></thead><tbody>
-    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td style="color:var(--text)">${it.item_description||""}</td><td class="num"><input type="text" class="inp-new" data-i="${i}" value="${fmt(it.newprice||0)}" oninput="recalcRow(${i})"></td>
-<td class="num"><input type="text" class="inp-old" data-i="${i}" value="${fmt(it.oldprice||0)}" oninput="recalcRow(${i})"></td>
-<td class="num"><input type="text" class="inp-vol" data-i="${i}" value="${(it.porvqty||0).toLocaleString()}" oninput="recalcRow(${i})"></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
+    ${state.items.map((it,i)=>`<tr><td style="color:var(--text-xs)">${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td style="color:var(--text)">${it.item_description||""}</td><td class="num"><input type="text" class="inp-new" data-i="${i}" value="${it.new_price||0}" oninput="recalcRow(${i})" step="0.01"/></td><td class="num"><input type="text" class="inp-old" data-i="${i}" value="${it.old_price||0}" oninput="recalcRow(${i})" step="0.01"/></td><td class="num" style="color:${it.priceDiff>=0?'var(--red)':'var(--green)'}">${fmt(it.priceDiff)}</td><td class="num" style="color:${it.pctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(it.pctDiff)}</td><td class="num"><input type="text" class="inp-vol" data-i="${i}" value="${it.porv_qty||0}" oninput="recalcRow(${i})" step="1"/></td><td class="num" style="color:${it.costImpact>=0?'var(--red)':'var(--green)'}">${fmt(it.costImpact)}</td></tr>`).join('')}
     </tbody></table>
     <div class="tbl-summary"><div>AVG % Diff: <strong style="color:${t.avgPctDiff>=0?'var(--red)':'var(--green)'}">${fmtPct(t.avgPctDiff)}</strong></div><div>Total Yearly Vol: <strong>${t.totalVol}</strong></div><div>Yearly Impact: <strong style="color:${t.totalImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.totalImpact)}</strong></div><div>Quarterly (INR): <strong style="color:${t.quarterlyImpact>=0?'var(--red)':'var(--green)'}">${fmt(t.quarterlyImpact)}</strong></div></div>
     </div></div>
@@ -640,7 +590,7 @@ function renderPDFPage1(){
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
     <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
-    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.item_code}</td><td style="max-width:110px">${it.item_description||""}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num">${fmt(it.new_price||it.ice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">1</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td></tr>`).join('')}
+    ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.item_code}</td><td style="max-width:110px">${it.item_description||""}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">1</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td></tr>`).join('')}
     <tr style="background:#f0f3f8;font-weight:700"><td colspan="8" style="text-align:right">Total</td><td class="num" style="color:${totalD>=0?'#c0392b':'#27ae60'}">${fmt(totalD)}</td></tr>
     </tbody></table>
     <div style="font-size:.6rem;color:#999;text-align:right;margin-top:2px">All Costs are in INR</div>
@@ -663,7 +613,7 @@ function renderPDFPage2(){
     <div class="pdf-row"><b>Vendor Code</b><span>${state.vendorCode}</span></div>
     <div class="pdf-row"><b>Vendor Name</b><span>${state.vendor}</span></div>
     <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
-    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td>${it.item_description||""}</td><td class="num">${fmt(it.new_price||it.ice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
+    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td>${it.item_description||""}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
     </tbody></table>
     <div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:6px;font-size:.72rem;gap:2px;">
       <div style="border-top:2px solid #222;padding-top:5px;display:flex;gap:34px;"><div><b>Avg % Price Diff:</b> ${fmtPct(t.avgPctDiff)}</div><div><b>Total Yearly Vol:</b> ${t.totalVol}</div></div>
@@ -845,7 +795,7 @@ function bindEvents(){
   // checkboxes
   document.querySelectorAll('.chk-row[data-grp]').forEach(el=>{el.onclick=()=>{toggle(state[{pricing:'pricingChecks',quality:'qualityChecks',parttype:'partTypeChecks'}[el.dataset.grp]],el.dataset.val);render();};});
   // table
-  ['inp-new','inp-old','inp-vol'].forEach(cls=>{document.querySelectorAll('.'+cls).forEach(inp=>{inp.oninput=()=>{const i=parseInt(inp.dataset.i);state.items[i][{['inp-new']:'ice',['inp-old']:'oldPrice',['inp-vol']:'yearlyVol'}[cls]]=parseFloat(inp.value)||0;calcRow(state.items[i]);render();};});});
+  ['inp-new','inp-old','inp-vol'].forEach(cls=>{document.querySelectorAll('.'+cls).forEach(inp=>{inp.oninput=()=>{const i=parseInt(inp.dataset.i);state.items[i][{['inp-new']:'newPrice',['inp-old']:'oldPrice',['inp-vol']:'yearlyVol'}[cls]]=parseFloat(inp.value)||0;calcRow(state.items[i]);render();};});});
   // add signer
   const ab=document.getElementById('addSigner');if(ab)ab.onclick=()=>{const n=document.getElementById('newName').value.trim(),r=document.getElementById('newRole').value.trim(),e=document.getElementById('newEmail').value.trim();if(!n||!e){showToast('Name & Email required');return;}const colors=['#4f8aff','#7c3aed','#f59e0b','#34d399','#f87171','#60a5fa'];state.signers.push({id:Date.now(),name:n,role:r||'Signatory',email:e,status:'waiting',color:colors[state.signers.length%colors.length]});showToast('Added: '+n);render();};
   // remove
@@ -874,8 +824,8 @@ function loadSample(){
   state.vendorCode='3010453056';state.vendor='Shanghai Zhongling Electronics';state.date='2026-02-03';
   state.category='ELECTRICAL';state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=['New Part'];
   state.items=[
-    {id:0,fsItemCode:'1910675981',itemCode:'1910675981',desc:'DSC COP CH1A-A35D8_14 STOPS_79425228-229',ice:2494.66,oldPrice:2110,yearlyVol:11,priceDiff:0,pctDiff:0,costImpact:0},
-    {id:1,fsItemCode:'1910675971',itemCode:'1910675971',desc:'DSC COP CH1A-A35D8_17 STOPS_79425225-227',ice:2563.23,oldPrice:0,yearlyVol:0,priceDiff:0,pctDiff:0,costImpact:0},
+    {id:0,fsItemCode:'1910675981',itemCode:'1910675981',desc:'DSC COP CH1A-A35D8_14 STOPS_79425228-229',newPrice:2494.66,oldPrice:2110,yearlyVol:11,priceDiff:0,pctDiff:0,costImpact:0},
+    {id:1,fsItemCode:'1910675971',itemCode:'1910675971',desc:'DSC COP CH1A-A35D8_17 STOPS_79425225-227',newPrice:2563.23,oldPrice:0,yearlyVol:0,priceDiff:0,pctDiff:0,costImpact:0},
   ];
   state.items.forEach(calcRow);applyCategoryToSigners();state.page='review';showToast('Sample loaded');render();
 }
@@ -896,17 +846,8 @@ async function calcItems(){
   overlay.innerHTML='<div style="background:var(--card);padding:32px;border-radius:8px;text-align:center;"><h3 style="color:#fff;margin:0 0 12px;">⏳ Creating Form...</h3><p style="color:var(--text-dim);margin:0;">Calculating prices and impact</p></div>';
   document.body.appendChild(overlay);
   try{
-   
-    const cleanItems = state.items.map(it => ({
-  ...it,
-  newPrice: parseFloat(String(it.newPrice).replace(/,/g, ''))
-}));
-
- const res=await fetch(API_URL + '/api/forms/create', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ items: cleanItems })
-})
+    const clean=state.items.map(x=>({itemCode:x.itemCode,itemDescription:x.itemDescription,vendorCode:x.vendorCode,vendorName:x.vendorName,newPrice:cleanNum(x.newPrice),currency:x.currency||'INR'}));
+    const res=await fetch(API_URL+'/api/forms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:clean})});
     const data=await res.json();
     if(data.success){
       state.formNumber=data.formNumber;
@@ -957,7 +898,7 @@ async function handlePrecalcUpload(file){
     state.items=[];
     for(let i=hIdx+1;i<rows.length;i++){
       const r=rows[i];
-      if(!r[0] || String(r[0]).trim()==='')continue;
+      if(!r[0])continue;
       state.items.push({
         item_code:String(r[0]||'').trim(),
         item_description:String(r[1]||'').trim(),
@@ -1037,7 +978,7 @@ function renderTracker(){
 
 async function loadTracker(){
   try{
-    const res=await fetch(API_URL + '/api/forms/tracker/all');
+    const res=await fetch(API_URL+'/api/forms/tracker/all');
     const data=await res.json();
     if(data.success){state.trackerForms=data.forms;render();}
   }catch(e){showToast('❌ '+e.message);}
