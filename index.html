@@ -264,6 +264,7 @@ canvas.sc{display:block;width:100%;height:130px;cursor:crosshair;touch-action:no
         <div class="fld"><label>Your Role</label>
           <select id="rRole">
             <option value="">Select role…</option>
+            <option value="Admin">Admin (@tkelevator.com only)</option>
             <option value="Purchase Manager">Purchase Manager</option>
             <option value="VP Purchase">VP Purchase</option>
             <option value="Finance Controller">Finance Controller</option>
@@ -376,14 +377,15 @@ canvas.sc{display:block;width:100%;height:130px;cursor:crosshair;touch-action:no
 // ══════════════════════════════════════════════
 // ⚙ CONFIGURATION — set your Render backend URL
 // ══════════════════════════════════════════════
+
+// ════════════════════════════════════════════════
+// ⚙ CONFIG — paste your Render URL here when ready
+// ════════════════════════════════════════════════
 const API_BASE = 'https://tkei-psm-backend.onrender.com';
-// e.g. 'https://tkei-cost-approval-api.onrender.com'
-// Leave as-is if already correct from your render.yaml
 
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// Signature zones — measured from actual TK Cost Approval Form PDF
-// Sits ABOVE the horizontal signature line
+// Signature zones — precisely measured from actual TK Cost Approval Form PDF
 const ZONES={
   admin:{pg:0,l:0.042,t:0.395,w:0.221,h:0.058},
   pm:   {pg:0,l:0.274,t:0.395,w:0.221,h:0.058},
@@ -394,15 +396,128 @@ const RENDER_SCALE=3.5;
 
 // ── STATE ──
 let S={adminUser:null,signUser:null,forms:[],curForm:null,curFormData:null,curMode:'admin'};
+let USE_LOCAL=false; // flips to true if backend unreachable
 
-// ── API HELPER ──
-async function api(method, path, body){
-  const opts={method,headers:{'Content-Type':'application/json'}};
-  if(body)opts.body=JSON.stringify(body);
-  const r=await fetch(API_BASE+path,opts);
-  const data=await r.json();
-  if(!r.ok)throw new Error(data.error||'API error');
-  return data;
+// ── IndexedDB (local fallback) ──
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('tke_portal_v5',1);
+    r.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('forms'))db.createObjectStore('forms',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('users'))db.createObjectStore('users',{keyPath:'email'});
+    };
+    r.onsuccess=e=>res(e.target.result);r.onerror=rej;
+  });
+}
+async function dbPut(store,obj){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(obj);tx.oncomplete=res;tx.onerror=rej;});}
+async function dbGet(store,key){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const r=tx.objectStore(store).get(key);r.onsuccess=()=>res(r.result);r.onerror=rej;});}
+async function dbGetAll(store){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const r=tx.objectStore(store).getAll();r.onsuccess=()=>res(r.result);r.onerror=rej;});}
+async function dbDel(store,key){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=res;tx.onerror=rej;});}
+
+// ── API HELPER — tries backend, falls back to local ──
+async function api(method,path,body){
+  if(USE_LOCAL) return localApi(method,path,body);
+  try{
+    const opts={method,headers:{'Content-Type':'application/json'}};
+    if(body)opts.body=JSON.stringify(body);
+    const r=await fetch(API_BASE+path,opts);
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||'API error '+r.status);
+    return data;
+  }catch(e){
+    // If network error (backend down/not deployed), switch to local mode
+    if(e.message.includes('fetch')||e.message.includes('NetworkError')||e.message.includes('Failed to fetch')){
+      if(!USE_LOCAL){
+        USE_LOCAL=true;
+        showToast('⚠ Backend not reachable — running in local mode');
+        const warn=document.getElementById('apiWarning');
+        if(warn){warn.style.display='block';warn.innerHTML='⚠ <strong>Running in local mode</strong> (backend not reachable). Data saves to this browser only. <a href="https://render.com" target="_blank" style="color:#E65100">Deploy your backend on Render</a> for full multi-device support.';}
+      }
+      return localApi(method,path,body);
+    }
+    throw e;
+  }
+}
+
+// ── LOCAL API — mirrors backend routes using IndexedDB ──
+async function localApi(method,path,body){
+  // AUTH
+  if(method==='POST'&&path==='/api/auth/admin-login'){
+    const {email,password}=body;
+    if(!email.toLowerCase().endsWith('@tkelevator.com'))throw new Error('Only @tkelevator.com emails allowed.');
+    if(password.length<4)throw new Error('Enter a valid password (min 4 chars).');
+    let user=await dbGet('users',email.toLowerCase());
+    if(!user){
+      user={email:email.toLowerCase(),password,name:email.split('@')[0],role:'Admin',sig:null,id:'local_'+Date.now()};
+      await dbPut('users',user);
+    } else if(user.password!==password){throw new Error('Invalid password.');}
+    return {success:true,user:{id:user.id,email:user.email,name:user.name,role:user.role,sig:user.sig||null}};
+  }
+  if(method==='POST'&&path==='/api/auth/register'){
+    const {email,password,name,role}=body;
+    const existing=await dbGet('users',email.toLowerCase());
+    if(existing)throw new Error('Account already exists. Please sign in.');
+    const user={email:email.toLowerCase(),password,name,role,sig:null,id:'local_'+Date.now()};
+    await dbPut('users',user);
+    return {success:true,user:{id:user.id,email:user.email,name:user.name,role:user.role,sig:null}};
+  }
+  if(method==='POST'&&path==='/api/auth/login'){
+    const {email,password}=body;
+    const user=await dbGet('users',email.toLowerCase());
+    if(!user||user.password!==password)throw new Error('Invalid email or password.');
+    return {success:true,user:{id:user.id,email:user.email,name:user.name,role:user.role,sig:user.sig||null}};
+  }
+  if(method==='POST'&&path==='/api/auth/save-signature'){
+    const {userId,signatureData}=body;
+    const all=await dbGetAll('users');
+    const user=all.find(u=>u.id===userId);
+    if(user){user.sig=signatureData;await dbPut('users',user);}
+    return {success:true};
+  }
+  // FORMS
+  if(method==='POST'&&path==='/api/portal-forms/upload'){
+    const f={id:body.formId,form_no:body.formNo,filename:body.filename,uploaded_at:new Date().toISOString(),
+      uploaded_by:body.uploadedBy,category:body.category||'Electrical',vendor:body.vendor||'',
+      quarterly_impact:body.quarterlyImpact||'',status:'pending_admin',
+      sig_admin:null,sig_pm:null,sig_vp:null,sig_fc:null,
+      sig_admin_at:null,sig_pm_at:null,sig_vp_at:null,sig_fc_at:null,
+      pdfBase64:body.pdfBase64};
+    await dbPut('forms',f);
+    return {success:true,formId:f.id};
+  }
+  if(method==='GET'&&path==='/api/portal-forms'){
+    const all=await dbGetAll('forms');
+    // Return metadata without pdfBase64 for list view
+    return {success:true,forms:all.map(f=>({...f,pdfBase64:undefined}))};
+  }
+  if(method==='GET'&&path.startsWith('/api/portal-forms/')){
+    const id=path.split('/').pop();
+    const f=await dbGet('forms',id);
+    if(!f)throw new Error('Form not found.');
+    return {success:true,form:f};
+  }
+  if(method==='POST'&&path.includes('/sign')){
+    const id=path.split('/')[3];
+    const f=await dbGet('forms',id);
+    if(!f)throw new Error('Form not found.');
+    const {role,signatureData,signedBy}=body;
+    if(role==='pm'&&!f.sig_admin)throw new Error('Admin must sign first.');
+    if(role==='vp'&&!f.sig_pm)throw new Error('Purchase Manager must sign first.');
+    if(role==='fc'&&!f.sig_vp)throw new Error('VP Purchase must sign first.');
+    f['sig_'+role]=signatureData;f['sig_'+role+'_at']=new Date().toISOString();f['sig_'+role+'_by']=signedBy;
+    const cnt=['admin','pm','vp','fc'].filter(k=>f['sig_'+k]).length;
+    f.status=cnt===4?'done':f.sig_admin?'in_circulation':'pending_admin';
+    await dbPut('forms',f);
+    return {success:true,status:f.status};
+  }
+  if(method==='DELETE'){
+    const id=path.split('/').pop();
+    await dbDel('forms',id);
+    return {success:true};
+  }
+  if(method==='POST'&&path.includes('/downloaded')){return {success:true};}
+  throw new Error('Local API: unhandled route '+method+' '+path);
 }
 
 // ── ROUTING ──
@@ -418,6 +533,8 @@ async function adminLogin(){
   const pass=document.getElementById('aPass').value;
   const err=document.getElementById('aErr');
   const btn=document.getElementById('aBtnLogin');
+  if(!email){err.style.display='block';err.textContent='Enter your email.';return;}
+  if(!pass){err.style.display='block';err.textContent='Enter your password.';return;}
   err.style.display='none';btn.disabled=true;btn.textContent='Signing in…';
   try{
     const data=await api('POST','/api/auth/admin-login',{email,password:pass});
@@ -444,11 +561,14 @@ async function signRegister(){
   const err=document.getElementById('sErr');
   const btn=document.getElementById('sBtnReg');
   if(!name||!email||!pass||!role){err.style.display='block';err.textContent='All fields required.';return;}
+  if(pass.length<6){err.style.display='block';err.textContent='Password min 6 characters.';return;}
+  if(role==='Admin'&&!email.toLowerCase().endsWith('@tkelevator.com')){
+    err.style.display='block';err.textContent='Admin accounts require a @tkelevator.com email.';return;
+  }
   err.style.display='none';btn.disabled=true;btn.textContent='Creating…';
   try{
     const data=await api('POST','/api/auth/register',{name,email,password:pass,role});
-    S.signUser=data.user;
-    enterSign(data.user);
+    enterUser(data.user);
   }catch(e){
     err.style.display='block';err.textContent=e.message;
   }finally{btn.disabled=false;btn.textContent='Create Account';}
@@ -458,20 +578,32 @@ async function signLogin(){
   const pass=document.getElementById('sPass').value;
   const err=document.getElementById('sErr');
   const btn=document.getElementById('sBtnLogin');
+  if(!email||!pass){err.style.display='block';err.textContent='Enter email and password.';return;}
   err.style.display='none';btn.disabled=true;btn.textContent='Signing in…';
   try{
     const data=await api('POST','/api/auth/login',{email,password:pass});
-    S.signUser=data.user;
-    enterSign(data.user);
+    enterUser(data.user);
   }catch(e){
     err.style.display='block';err.textContent=e.message;
   }finally{btn.disabled=false;btn.textContent='Sign In';}
 }
-function enterSign(u){
-  showNav('Signatory Portal',u.name+' · '+u.role);
-  document.getElementById('signInfo').textContent='Signed in as '+u.name+' ('+u.role+')';
-  showV('vSign');loadSignForms();
+
+// Routes user to correct dashboard based on role
+function enterUser(u){
+  if(u.role==='Admin'){
+    S.adminUser=u;
+    showNav('Form Control',u.name+' · '+u.email);
+    showV('vAdmin');
+    loadAdminForms();
+  } else {
+    S.signUser=u;
+    showNav('Signatory Portal',u.name+' · '+u.role);
+    document.getElementById('signInfo').textContent='Signed in as '+u.name+' ('+u.role+')';
+    showV('vSign');loadSignForms();
+  }
 }
+// Keep enterSign as alias for backward compat
+function enterSign(u){enterUser(u);}
 function showNav(title,sub){
   document.getElementById('nav').style.display='flex';
   document.getElementById('navTitle').textContent=title;
@@ -509,7 +641,8 @@ function processFile(file){
 async function loadAdminForms(){
   try{
     const data=await api('GET','/api/portal-forms');
-    S.forms=data.forms||[];
+    // Strip pdfBase64 from list view (local mode may include it)
+    S.forms=(data.forms||[]).map(f=>{const{pdfBase64,...rest}=f;return rest;});
     renderAdminTable();updateStats();
   }catch(e){showToast('Failed to load forms: '+e.message);}
 }
