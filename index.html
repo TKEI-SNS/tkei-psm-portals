@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TK Elevator – Cost Approval Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --dk:#0D2438;--mid:#1A3A52;--ac:#00A8E8;--gold:#F5A623;
+  --bg:#F4F6F9;--sur:#fff;--brd:#DDE3EC;--txt:#1A2B3C;--mut:#6B7E94;
+  --red:#E53935;--grn:#2E7D32;--blu:#0077B6;--r:10px;
+  --f:'DM Sans',sans-serif;--m:'DM Mono',monospace;
+}
+body{font-family:var(--f);background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+.hide{display:none!important}
+.view{display:none;min-height:100vh}.view.active{display:block}
+
+/* ── NAV ── */
+.nav{background:var(--dk);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:54px;position:sticky;top:0;z-index:50}
+.nav-logo{width:34px;height:34px;background:var(--ac);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;margin-right:10px;flex-shrink:0}
+.nav-l{display:flex;align-items:center}
+.nav-r{display:flex;align-items:center;gap:8px}
+.nav-title{font-size:14px;font-weight:700}
+.nav-sub{font-size:10px;opacity:.5}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:none;cursor:pointer;font:500 13px var(--f);transition:all .15s;white-space:nowrap}
+.btn-pri{background:var(--ac);color:#fff}.btn-pri:hover{filter:brightness(1.1)}
+.btn-grn{background:var(--grn);color:#fff}
+.btn-dk{background:var(--mid);color:#fff}
+.btn-out{background:#fff;color:var(--dk);border:1.5px solid var(--brd)}.btn-out:hover{background:var(--bg)}
+.btn-gh{background:rgba(255,255,255,.1);color:#fff}.btn-gh:hover{background:rgba(255,255,255,.2)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── AUTH ── */
+.auth-bg{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0D2438,#1A3A52);padding:20px}
+.auth-card{background:#fff;border-radius:16px;padding:36px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.auth-logo{width:56px;height:56px;background:var(--dk);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--ac);margin:0 auto 18px}
+.auth-h{font-size:19px;font-weight:700;text-align:center;margin-bottom:4px}
+.auth-s{font-size:12px;color:var(--mut);text-align:center;margin-bottom:24px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:11px;font-weight:700;color:var(--mut);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.fld input,.fld select{width:100%;padding:9px 12px;border:1.5px solid var(--brd);border-radius:8px;font:14px var(--f);background:#fafbfc}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--ac)}
+.err-box{background:#FFF3F3;border:1px solid #FFCDD2;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none}
+
+/* ── PAGE ── */
+.pg{padding:20px}
+.pg-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.pg-title{font-size:18px;font-weight:700}
+.pg-sub{font-size:12px;color:var(--mut);margin-top:2px}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.sc{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:14px}
+.sc-l{font-size:10px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sc-v{font-size:24px;font-weight:700}
+.c-blu{color:var(--blu)}.c-gld{color:var(--gold)}.c-grn{color:var(--grn)}
+
+/* ── UPLOAD ── */
+.upz{background:var(--sur);border:2px dashed var(--brd);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px}
+.upz:hover,.upz.drag{border-color:var(--ac);background:#F0FAFF}
+
+/* ── TABLE ── */
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden}
+.card-hdr{padding:12px 18px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:700}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--brd);background:#FAFBFC;white-space:nowrap}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--brd);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFC}
+.tdact{display:flex;gap:5px;flex-wrap:wrap}
+
+/* ── BADGES ── */
+.bdg{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.bdg-p{background:#FFF8E1;color:#E65100}
+.bdg-s{background:#E8F5E9;color:#2E7D32}
+.bdg-i{background:#E3F2FD;color:#0D47A1}
+.bdg-w{background:#F3E5F5;color:#6A1B9A}
+
+/* ── FULLSCREEN PDF VIEWER ── */
+#pdfViewer{position:fixed;inset:0;background:#000;z-index:200;display:none;flex-direction:column}
+#pdfViewer.open{display:flex}
+.pv-bar{background:var(--dk);color:#fff;display:flex;align-items:center;padding:0 16px;height:52px;gap:12px;flex-shrink:0}
+.pv-title{flex:1;overflow:hidden}
+.pv-title h2{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-title p{font-size:11px;opacity:.5}
+.pv-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.pv-steps{background:var(--mid);display:flex;align-items:center;padding:0 16px;height:38px;gap:0;flex-shrink:0;overflow-x:auto}
+.stp{display:flex;align-items:center;gap:5px;padding:0 10px;font-size:11px;font-weight:600;color:rgba(255,255,255,.4);white-space:nowrap;height:100%}
+.stp.done{color:#81C784}.stp.active{color:var(--ac)}
+.stp-n{width:17px;height:17px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.stp-arr{color:rgba(255,255,255,.2);padding:0 2px}
+.pv-body{flex:1;overflow-y:auto;overflow-x:auto;background:#404040;display:flex;flex-direction:column;align-items:center;padding:20px;gap:20px}
+.pp-wrap{position:relative;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.5);flex-shrink:0}
+.pp-wrap canvas{display:block}
+
+/* ── SIGNATURE OVERLAYS — measured from actual PDF ── */
+.sig-ov{position:absolute;border:2px dashed rgba(0,168,232,.7);border-radius:2px;background:rgba(0,168,232,.05);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;cursor:pointer;overflow:hidden;transition:background .15s}
+.sig-ov:hover{background:rgba(0,168,232,.12)}
+.sig-ov.done{border:none;background:transparent;cursor:default;pointer-events:none}
+.sig-ov.done img{width:100%;height:100%;object-fit:contain;object-position:center bottom;padding:2px 4px}
+.sig-ov.wait{border-color:rgba(160,160,160,.4);background:transparent;cursor:default}
+.sig-ov span{font-size:9px;font-weight:700;color:rgba(0,168,232,.85);text-align:center;line-height:1.2;padding:0 3px}
+.sig-ov.wait span{color:rgba(150,150,150,.6)}
+
+/* ── SMALL MODALS ── */
+.sm-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.sm-ov.open{display:flex}
+.sm{background:#fff;border-radius:14px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.sm-hdr{padding:16px 20px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.sm-hdr h3{font-size:15px;font-weight:700}
+.sm-body{padding:20px}
+.sm-ftr{padding:14px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--brd)}
+.x-btn{width:30px;height:30px;border-radius:7px;border:none;background:var(--bg);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.sec-lbl{font-size:12px;font-weight:700;padding-bottom:8px;border-bottom:1px solid var(--brd);margin-bottom:12px}
+
+/* ── SIG CANVAS ── */
+.sc-wrap{border:1.5px solid var(--brd);border-radius:8px;background:#fafbfc;position:relative;overflow:hidden;height:130px}
+canvas.sc{display:block;width:100%;height:130px;cursor:crosshair;touch-action:none}
+.sc-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mut);pointer-events:none;transition:opacity .3s}
+
+/* ── FORMS GRID ── */
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.fc{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .2s}
+.fc:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.fc-num{font-size:11px;font-weight:700;color:var(--mut);margin-bottom:5px}
+.fc-name{font-size:14px;font-weight:700;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-meta{font-size:11px;color:var(--mut);display:flex;flex-direction:column;gap:3px}
+.fc-ftr{margin-top:12px;padding-top:10px;border-top:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.sdots{display:flex;gap:3px}
+.sd{width:20px;height:5px;border-radius:3px;background:var(--brd)}.sd.done{background:var(--grn)}
+
+/* ── SEARCH ── */
+.sb{display:flex;align-items:center;gap:8px;background:var(--sur);border:1.5px solid var(--brd);border-radius:var(--r);padding:8px 14px;margin-bottom:18px}
+.sb input{flex:1;border:none;font:14px var(--f);background:transparent;outline:none;color:var(--txt)}
+
+/* ── LINK BOX ── */
+.lb{background:#F0FAFF;border:1px solid #B3E5FC;border-radius:8px;padding:11px 13px;font-family:var(--m);font-size:11px;color:var(--blu);word-break:break-all;display:flex;align-items:flex-start;gap:8px;margin-top:8px}
+.cp-btn{flex-shrink:0;background:var(--blu);color:#fff;border:none;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;font-weight:600}
+
+/* ── API CONFIG BOX ── */
+.cfg-box{background:#FFFDE7;border:1px solid #F9A825;border-radius:8px;padding:14px;margin-bottom:20px;font-size:12px}
+.cfg-box strong{color:#E65100}
+
+#toast{position:fixed;bottom:20px;right:20px;background:var(--dk);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.fg{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav" style="display:none">
+  <div class="nav-l">
+    <div class="nav-logo">TK</div>
+    <div><div class="nav-title" id="navTitle">Cost Approval</div><div class="nav-sub">PSM – Chakan</div></div>
+  </div>
+  <div class="nav-r">
+    <span id="navUser" style="font-size:11px;opacity:.6;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button class="btn btn-gh btn-sm" onclick="openSettings()">⚙ Settings</button>
+    <button class="btn btn-gh btn-sm" onclick="logout()">Sign out</button>
+  </div>
+</nav>
+<div id="toast"></div>
+
+<!-- ══ LANDING ══ -->
+<div class="view active" id="vLand">
+  <div class="auth-bg" style="flex-direction:column;gap:28px">
+    <div style="text-align:center;color:#fff">
+      <div style="width:64px;height:64px;background:var(--ac);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;margin:0 auto 14px">TK</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:4px">TK Elevator</div>
+      <div style="font-size:13px;opacity:.5">Cost Approval Portal · PSM Chakan</div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
+      <div onclick="goPortal('admin')" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:26px 32px;cursor:pointer;text-align:center;color:#fff;transition:background .2s;max-width:200px" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">
+        <div style="font-size:30px;margin-bottom:10px">🗂</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Form Control</div>
+        <div style="font-size:11px;opacity:.5">Admin · Upload &amp; track</div>
+      </div>
+      <div onclick="goPortal('sign')" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:26px 32px;cursor:pointer;text-align:center;color:#fff;transition:background .2s;max-width:200px" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">
+        <div style="font-size:30px;margin-bottom:10px">✍️</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Signatory Portal</div>
+        <div style="font-size:11px;opacity:.5">Managers · Review &amp; sign</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN AUTH ══ -->
+<div class="view" id="vAdminAuth">
+  <div class="auth-bg">
+    <div class="auth-card">
+      <div class="auth-logo">TK</div>
+      <div class="auth-h">Form Control</div>
+      <div class="auth-s">Sign in with your @tkelevator.com account</div>
+      <div class="err-box" id="aErr"></div>
+      <div class="fld"><label>Email</label><input type="email" id="aEmail" placeholder="name@tkelevator.com" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+      <div class="fld"><label>Password</label><input type="password" id="aPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+      <button class="btn btn-pri" style="width:100%;justify-content:center;padding:10px" id="aBtnLogin" onclick="adminLogin()">Sign In</button>
+      <div style="margin-top:14px;text-align:center"><a onclick="goPortal('sign')" style="font-size:12px;color:var(--blu);cursor:pointer">Go to Signatory Portal →</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN DASHBOARD ══ -->
+<div class="view" id="vAdmin">
+  <div class="pg">
+    <div id="apiWarning" class="cfg-box" style="display:none">
+      ⚠ <strong>API not configured.</strong> Open this file and set <code>API_BASE</code> at the top of the script to your Render backend URL (e.g. <code>https://tkei-cost-approval-api.onrender.com</code>)
+    </div>
+    <div class="pg-hdr">
+      <div><div class="pg-title">Form Control Dashboard</div><div class="pg-sub">Upload, sign and track cost approval forms</div></div>
+      <button class="btn btn-pri" onclick="document.getElementById('fInput').click()">＋ Upload PDF</button>
+      <button class="btn btn-sm" style="background:#7B1FA2;color:#fff" onclick="openMod('mArchive')">🗄 Archive &amp; Clear</button>
+      <input type="file" id="fInput" accept=".pdf" multiple style="display:none" onchange="handleUpload(event)">
+    </div>
+    <div class="stats">
+      <div class="sc"><div class="sc-l">Total Forms</div><div class="sc-v c-blu" id="stTotal">0</div></div>
+      <div class="sc"><div class="sc-l">Pending Admin</div><div class="sc-v c-gld" id="stPend">0</div></div>
+      <div class="sc"><div class="sc-l">In Circulation</div><div class="sc-v" id="stCirc">0</div></div>
+      <div class="sc"><div class="sc-l">Fully Signed</div><div class="sc-v c-grn" id="stDone">0</div></div>
+    </div>
+    <div class="upz" id="upz" onclick="document.getElementById('fInput').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+      <div style="font-size:32px;margin-bottom:10px">📄</div>
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Drop PDF forms here or click to browse</h3>
+      <p style="font-size:12px;color:var(--mut);margin-top:4px">Multiple files · PDF only · Saved to Supabase</p>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Uploaded Forms</div><span id="fCount" style="font-size:12px;color:var(--mut)">0 forms</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Form No.</th><th>File</th><th>Uploaded</th><th>Signatures</th><th>Admin</th><th>Actions</th></tr></thead>
+        <tbody id="aTbl"><tr><td colspan="6" style="text-align:center;color:var(--mut);padding:28px">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SIGN AUTH ══ -->
+<div class="view" id="vSignAuth">
+  <div class="auth-bg">
+    <div class="auth-card">
+      <div class="auth-logo">TK</div>
+      <div class="auth-h">Signatory Portal</div>
+      <div class="auth-s">Sign in or create an account</div>
+      <div class="err-box" id="sErr"></div>
+      <div id="sLogin">
+        <div class="fld"><label>Email</label><input type="email" id="sEmail" placeholder="your@email.com"></div>
+        <div class="fld"><label>Password</label><input type="password" id="sPass" placeholder="••••••••"></div>
+        <button class="btn btn-pri" style="width:100%;justify-content:center;padding:10px" id="sBtnLogin" onclick="signLogin()">Sign In</button>
+        <div style="margin-top:12px;text-align:center;font-size:13px;color:var(--mut)">No account? <a onclick="togReg(true)" style="color:var(--blu);cursor:pointer">Register</a></div>
+      </div>
+      <div id="sReg" style="display:none">
+        <div class="fld"><label>Full Name</label><input type="text" id="rName" placeholder="Your full name"></div>
+        <div class="fld"><label>Email</label><input type="email" id="rEmail" placeholder="your@email.com"></div>
+        <div class="fld"><label>Password</label><input type="password" id="rPass" placeholder="Min 6 characters"></div>
+        <div class="fld"><label>Your Role</label>
+          <select id="rRole">
+            <option value="">Select role…</option>
+            <option value="Purchase Manager">Purchase Manager</option>
+            <option value="VP Purchase">VP Purchase</option>
+            <option value="Finance Controller">Finance Controller</option>
+          </select>
+        </div>
+        <button class="btn btn-pri" style="width:100%;justify-content:center;padding:10px" id="sBtnReg" onclick="signRegister()">Create Account</button>
+        <div style="margin-top:12px;text-align:center;font-size:13px;color:var(--mut)">Have account? <a onclick="togReg(false)" style="color:var(--blu);cursor:pointer">Sign in</a></div>
+      </div>
+      <div style="margin-top:14px;text-align:center"><a onclick="goPortal('admin')" style="font-size:12px;color:var(--blu);cursor:pointer">← Admin / Form Control</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SIGNATORY DASHBOARD ══ -->
+<div class="view" id="vSign">
+  <div class="pg">
+    <div class="pg-hdr">
+      <div><div class="pg-title">Approval Forms</div><div class="pg-sub" id="signInfo">–</div></div>
+    </div>
+    <div class="sb">
+      <span style="color:var(--mut)">🔍</span>
+      <input type="text" id="srch" placeholder="Search by Form No., Vendor, Date…" oninput="renderSignForms()">
+    </div>
+    <div class="fg" id="signGrid"><div style="grid-column:1/-1;text-align:center;color:var(--mut);padding:36px">Loading…</div></div>
+  </div>
+</div>
+
+<!-- ══ PDF VIEWER ══ -->
+<div id="pdfViewer">
+  <div class="pv-bar">
+    <div class="pv-title"><h2 id="pvTitle">–</h2><p id="pvSub">–</p></div>
+    <div class="pv-actions">
+      <button class="btn btn-grn btn-sm hide" id="pvBtnSign" onclick="doSign()">✍ Sign Form</button>
+      <button class="btn btn-dk btn-sm hide" id="pvBtnLink" onclick="showLink()">Get Link →</button>
+      <button class="btn btn-grn btn-sm hide" id="pvBtnDl" onclick="downloadSigned()">⬇ Download Signed</button>
+      <button class="btn btn-gh btn-sm" onclick="closePV()">✕ Close</button>
+    </div>
+  </div>
+  <div class="pv-steps" id="pvSteps"></div>
+  <div class="pv-body" id="pvBody"><div style="color:rgba(255,255,255,.5);padding:40px;text-align:center">Loading…</div></div>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div class="sm-ov" id="mSet">
+  <div class="sm">
+    <div class="sm-hdr"><h3>Settings</h3><button class="x-btn" onclick="closeMod('mSet')">✕</button></div>
+    <div class="sm-body">
+      <div class="sec-lbl">Your Digital Signature</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:10px">Draw your signature — placed automatically in your designated space on the form.</p>
+      <div class="sc-wrap"><canvas class="sc" id="sigCvs"></canvas><div class="sc-hint" id="sigHint">Draw your signature here</div></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-out btn-sm" onclick="clearSig()">Clear</button>
+        <button class="btn btn-pri btn-sm" id="btnSaveSig" onclick="saveSig()">Save Signature</button>
+      </div>
+      <div id="sigPrev" style="margin-top:12px;display:none">
+        <div style="font-size:11px;font-weight:600;color:var(--grn);margin-bottom:5px">✓ Signature saved</div>
+        <img id="sigPrevImg" style="max-height:55px;border:1px solid var(--brd);border-radius:6px;padding:3px;background:#fafbfc">
+      </div>
+      <div id="setAccInfo" style="margin-top:20px;display:none">
+        <div class="sec-lbl" style="margin-top:0">Account</div>
+        <div style="font-size:12px;color:var(--mut)" id="setAccTxt"></div>
+      </div>
+    </div>
+    <div class="sm-ftr"><button class="btn btn-out" onclick="closeMod('mSet')">Close</button></div>
+  </div>
+</div>
+
+<!-- ══ LINK MODAL ══ -->
+<div class="sm-ov" id="mLink">
+  <div class="sm">
+    <div class="sm-hdr"><h3>✓ Ready for Circulation</h3><button class="x-btn" onclick="closeMod('mLink')">✕</button></div>
+    <div class="sm-body">
+      <p style="font-size:13px;color:var(--mut);margin-bottom:12px">Admin signature captured. Share with managers in sequence:</p>
+      <p style="font-size:12px;font-weight:600;color:var(--dk);margin-bottom:12px">Purchase Manager → VP Purchase → Finance Controller</p>
+      <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px">Signatory Portal Link</div>
+      <div class="lb"><span id="genLinkTxt" style="flex:1"></span><button class="cp-btn" onclick="copyLink()">Copy</button></div>
+    </div>
+    <div class="sm-ftr"><button class="btn btn-pri" onclick="closeMod('mLink')">Done</button></div>
+  </div>
+</div>
+
+<!-- ══ ARCHIVE MODAL ══ -->
+<div class="sm-ov" id="mArchive">
+  <div class="sm" style="max-width:480px">
+    <div class="sm-hdr"><h3>🗄 Archive &amp; Clear Signed Forms</h3><button class="x-btn" onclick="closeMod('mArchive')">✕</button></div>
+    <div class="sm-body">
+      <div style="background:#F3E5F5;border:1px solid #CE93D8;border-radius:8px;padding:12px 14px;font-size:12px;color:#4A148C;margin-bottom:16px;line-height:1.6">
+        <strong>What this does:</strong><br>
+        1. Fetches all <strong>fully signed</strong> forms from Supabase<br>
+        2. Composites signatures onto each PDF page<br>
+        3. Downloads a <strong>ZIP file of real signed PDFs</strong> to your computer<br>
+        4. Deletes those forms from Supabase — freeing storage
+      </div>
+      <div id="archiveStatus" style="font-size:13px;color:var(--mut);margin-bottom:12px"></div>
+      <div id="archiveProgress" style="display:none;margin-bottom:12px">
+        <div style="background:var(--brd);border-radius:4px;height:6px;overflow:hidden">
+          <div id="archiveBar" style="background:#7B1FA2;height:100%;width:0%;transition:width .3s;border-radius:4px"></div>
+        </div>
+        <div id="archiveLabel" style="font-size:11px;color:var(--mut);margin-top:6px;text-align:center"></div>
+      </div>
+    </div>
+    <div class="sm-ftr">
+      <button class="btn btn-out" onclick="closeMod('mArchive')">Cancel</button>
+      <button class="btn btn-sm" id="btnArchive" style="background:#7B1FA2;color:#fff" onclick="runArchive()">⬇ Download ZIP &amp; Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// ⚙ CONFIGURATION — set your Render backend URL
+// ══════════════════════════════════════════════
+const API_BASE = 'https://tkei-psm-backend.onrender.com';
+// e.g. 'https://tkei-cost-approval-api.onrender.com'
+// Leave as-is if already correct from your render.yaml
+
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// Signature zones — measured from actual TK Cost Approval Form PDF
+// Sits ABOVE the horizontal signature line
+const ZONES={
+  admin:{pg:0,l:0.042,t:0.395,w:0.221,h:0.058},
+  pm:   {pg:0,l:0.274,t:0.395,w:0.221,h:0.058},
+  vp:   {pg:0,l:0.505,t:0.395,w:0.221,h:0.058},
+  fc:   {pg:0,l:0.737,t:0.395,w:0.221,h:0.058},
+};
+const RENDER_SCALE=3.5;
+
+// ── STATE ──
+let S={adminUser:null,signUser:null,forms:[],curForm:null,curFormData:null,curMode:'admin'};
+
+// ── API HELPER ──
+async function api(method, path, body){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(API_BASE+path,opts);
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||'API error');
+  return data;
+}
+
+// ── ROUTING ──
+function showV(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goPortal(p){document.getElementById('nav').style.display='none';showV(p==='admin'?'vAdminAuth':'vSignAuth');}
+function logout(){S.adminUser=null;S.signUser=null;S.forms=[];document.getElementById('nav').style.display='none';showV('vLand');}
+function openMod(id){document.getElementById(id).classList.add('open');}
+function closeMod(id){document.getElementById(id).classList.remove('open');}
+
+// ── ADMIN AUTH ──
+async function adminLogin(){
+  const email=document.getElementById('aEmail').value.trim();
+  const pass=document.getElementById('aPass').value;
+  const err=document.getElementById('aErr');
+  const btn=document.getElementById('aBtnLogin');
+  err.style.display='none';btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const data=await api('POST','/api/auth/admin-login',{email,password:pass});
+    S.adminUser=data.user;
+    showNav('Form Control',data.user.email);
+    showV('vAdmin');
+    await loadAdminForms();
+  }catch(e){
+    err.style.display='block';err.textContent=e.message;
+  }finally{btn.disabled=false;btn.textContent='Sign In';}
+}
+
+// ── SIGN AUTH ──
+function togReg(show){
+  document.getElementById('sLogin').style.display=show?'none':'';
+  document.getElementById('sReg').style.display=show?'':'none';
+  document.getElementById('sErr').style.display='none';
+}
+async function signRegister(){
+  const name=document.getElementById('rName').value.trim();
+  const email=document.getElementById('rEmail').value.trim();
+  const pass=document.getElementById('rPass').value;
+  const role=document.getElementById('rRole').value;
+  const err=document.getElementById('sErr');
+  const btn=document.getElementById('sBtnReg');
+  if(!name||!email||!pass||!role){err.style.display='block';err.textContent='All fields required.';return;}
+  err.style.display='none';btn.disabled=true;btn.textContent='Creating…';
+  try{
+    const data=await api('POST','/api/auth/register',{name,email,password:pass,role});
+    S.signUser=data.user;
+    enterSign(data.user);
+  }catch(e){
+    err.style.display='block';err.textContent=e.message;
+  }finally{btn.disabled=false;btn.textContent='Create Account';}
+}
+async function signLogin(){
+  const email=document.getElementById('sEmail').value.trim();
+  const pass=document.getElementById('sPass').value;
+  const err=document.getElementById('sErr');
+  const btn=document.getElementById('sBtnLogin');
+  err.style.display='none';btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const data=await api('POST','/api/auth/login',{email,password:pass});
+    S.signUser=data.user;
+    enterSign(data.user);
+  }catch(e){
+    err.style.display='block';err.textContent=e.message;
+  }finally{btn.disabled=false;btn.textContent='Sign In';}
+}
+function enterSign(u){
+  showNav('Signatory Portal',u.name+' · '+u.role);
+  document.getElementById('signInfo').textContent='Signed in as '+u.name+' ('+u.role+')';
+  showV('vSign');loadSignForms();
+}
+function showNav(title,sub){
+  document.getElementById('nav').style.display='flex';
+  document.getElementById('navTitle').textContent=title;
+  document.getElementById('navUser').textContent=sub;
+}
+
+// ── FILE UPLOAD ──
+function handleDrop(e){e.preventDefault();document.getElementById('upz').classList.remove('drag');[...e.dataTransfer.files].filter(f=>f.type==='application/pdf').forEach(processFile);}
+function handleUpload(e){[...e.target.files].forEach(processFile);e.target.value='';}
+function processFile(file){
+  if(file.size>25*1024*1024)showToast('⚠ '+file.name+' is large — may be slow to upload.');
+  showToast('Uploading '+file.name+'…');
+  const reader=new FileReader();
+  reader.onload=async function(ev){
+    try{
+      const id='f_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+      const m=file.name.match(/(\d{4}_\d{2}_\d{2}_\d+)/);
+      const formNo=m?m[1]:file.name.replace(/\.pdf$/i,'');
+      await api('POST','/api/portal-forms/upload',{
+        formId:id,formNo,filename:file.name,
+        uploadedBy:S.adminUser.email,
+        pdfBase64:ev.target.result,
+        category:'Electrical',vendor:'',quarterlyImpact:''
+      });
+      showToast('✓ Uploaded: '+file.name);
+      await loadAdminForms();
+      // Open for admin to sign
+      openPV(id,'admin');
+    }catch(e){showToast('❌ Upload failed: '+e.message);}
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── ADMIN FORMS ──
+async function loadAdminForms(){
+  try{
+    const data=await api('GET','/api/portal-forms');
+    S.forms=data.forms||[];
+    renderAdminTable();updateStats();
+  }catch(e){showToast('Failed to load forms: '+e.message);}
+}
+
+function renderAdminTable(){
+  const tbody=document.getElementById('aTbl');
+  document.getElementById('fCount').textContent=S.forms.length+' form'+(S.forms.length!==1?'s':'');
+  if(!S.forms.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--mut);padding:28px">No forms uploaded yet.</td></tr>';return;}
+  tbody.innerHTML=S.forms.map(f=>{
+    const sigs=[f.sig_admin,f.sig_pm,f.sig_vp,f.sig_fc];
+    const cnt=sigs.filter(Boolean).length;
+    const sigB=cnt===4?'<span class="bdg bdg-s">✓ Fully Signed</span>':cnt===0?'<span class="bdg bdg-p">Awaiting Admin</span>':'<span class="bdg bdg-i">'+cnt+'/4 Signed</span>';
+    const admB=f.sig_admin?'<span class="bdg bdg-s">✓</span>':'<span class="bdg bdg-p">Pending</span>';
+    return `<tr>
+      <td style="font-family:var(--m);font-size:11px;font-weight:600">${esc(f.form_no)}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(f.filename)}">${esc(f.filename)}</td>
+      <td style="white-space:nowrap;font-size:12px">${fmtD(f.uploaded_at)}</td>
+      <td>${sigB}</td><td>${admB}</td>
+      <td><div class="tdact">
+        <button class="btn btn-out btn-sm" onclick="openPV('${f.id}','admin')">View / Sign</button>
+        ${f.sig_admin?`<button class="btn btn-dk btn-sm" onclick="showLink('${f.id}')">Get Link</button>`:''}
+        ${cnt===4?`<button class="btn btn-grn btn-sm" onclick="S.curForm='${f.id}';downloadSigned()">⬇ DL</button>`:''}
+        <button class="btn btn-sm" style="background:#FFF3F3;color:var(--red);border:1px solid #FFCDD2" onclick="delForm('${f.id}')">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats(){
+  document.getElementById('stTotal').textContent=S.forms.length;
+  document.getElementById('stPend').textContent=S.forms.filter(f=>!f.sig_admin).length;
+  document.getElementById('stCirc').textContent=S.forms.filter(f=>f.sig_admin&&!f.sig_fc).length;
+  document.getElementById('stDone').textContent=S.forms.filter(f=>f.sig_fc).length;
+}
+
+async function delForm(id){
+  if(!confirm('Delete this form? This cannot be undone.'))return;
+  try{
+    await api('DELETE','/api/portal-forms/'+id);
+    showToast('Form deleted.');
+    await loadAdminForms();
+  }catch(e){showToast('Delete failed: '+e.message);}
+}
+
+// ── PDF VIEWER ──
+async function openPV(formId,mode){
+  S.curForm=formId;S.curMode=mode;
+  const pvEl=document.getElementById('pdfViewer');
+  pvEl.classList.add('open');
+  document.body.style.overflow='hidden';
+  document.getElementById('pvBody').innerHTML='<div style="color:rgba(255,255,255,.6);padding:40px;text-align:center;font-size:13px">Fetching form from Supabase…</div>';
+  document.getElementById('pvTitle').textContent='Loading…';
+  document.getElementById('pvSub').textContent='';
+  try{
+    const data=await api('GET','/api/portal-forms/'+formId);
+    S.curFormData=data.form;
+    document.getElementById('pvTitle').textContent=data.form.form_no;
+    document.getElementById('pvSub').textContent=data.form.filename;
+    updateSteps(data.form);
+    updatePVBtns(data.form,mode);
+    await renderPDF(data.form,mode);
+  }catch(e){
+    document.getElementById('pvBody').innerHTML='<div style="color:#EF9A9A;padding:24px;text-align:center">Failed to load form: '+e.message+'</div>';
+  }
+}
+
+function closePV(){
+  document.getElementById('pdfViewer').classList.remove('open');
+  document.body.style.overflow='';
+  S.curFormData=null;
+}
+
+function updateSteps(form){
+  const labels=['Admin (Prepared By)','Purchase Manager','VP Purchase','Finance Controller'];
+  const keys=['admin','pm','vp','fc'];
+  document.getElementById('pvSteps').innerHTML=keys.map((k,i)=>{
+    const done=!!form['sig_'+k];
+    const active=!done&&(i===0||!!form['sig_'+keys[i-1]]);
+    return (i>0?'<span class="stp-arr">›</span>':'')+
+      `<div class="stp${done?' done':active?' active':''}">`+
+      `<div class="stp-n">${done?'✓':i+1}</div>${labels[i]}</div>`;
+  }).join('');
+}
+
+function updatePVBtns(form,mode){
+  const cnt=['admin','pm','vp','fc'].filter(k=>form['sig_'+k]).length;
+  const bSign=document.getElementById('pvBtnSign');
+  const bLink=document.getElementById('pvBtnLink');
+  const bDl=document.getElementById('pvBtnDl');
+  bSign.classList.add('hide');bLink.classList.add('hide');bDl.classList.add('hide');
+  if(mode==='admin'){
+    if(!form.sig_admin)bSign.classList.remove('hide');
+    if(form.sig_admin&&cnt<4)bLink.classList.remove('hide');
+    if(cnt===4)bDl.classList.remove('hide');
+  } else {
+    const u=S.signUser;if(!u)return;
+    const rk=roleKey(u.role);
+    if(rk&&canSign(form,rk)&&!form['sig_'+rk])bSign.classList.remove('hide');
+    if(cnt===4)bDl.classList.remove('hide');
+  }
+}
+
+async function renderPDF(form,mode){
+  const body=document.getElementById('pvBody');
+  body.innerHTML='<div style="color:rgba(255,255,255,.6);padding:40px;text-align:center;font-size:13px">Rendering at high resolution…</div>';
+  try{
+    const raw=atob(form.pdfBase64.split(',')[1]);
+    const bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+    body.innerHTML='';
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const vp=page.getViewport({scale:RENDER_SCALE});
+      const avail=body.clientWidth||window.innerWidth;
+      const dispW=Math.min(vp.width,avail*0.95,1200);
+      const ratio=dispW/vp.width;
+      const dispH=vp.height*ratio;
+      const wrap=document.createElement('div');
+      wrap.className='pp-wrap';wrap.style.width=dispW+'px';wrap.style.height=dispH+'px';
+      const canvas=document.createElement('canvas');
+      canvas.width=vp.width;canvas.height=vp.height;
+      canvas.style.width=dispW+'px';canvas.style.height=dispH+'px';
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+      wrap.appendChild(canvas);
+      const pi=p-1;
+      for(const[key,z] of Object.entries(ZONES)){
+        if(z.pg!==pi)continue;
+        const ov=document.createElement('div');
+        ov.className='sig-ov';
+        ov.style.left=(z.l*dispW)+'px';ov.style.top=(z.t*dispH)+'px';
+        ov.style.width=(z.w*dispW)+'px';ov.style.height=(z.h*dispH)+'px';
+        const sig=form['sig_'+key];
+        if(sig){
+          ov.classList.add('done');
+          const img=document.createElement('img');img.src=sig;
+          img.style.cssText='width:100%;height:100%;object-fit:contain;object-position:center bottom;padding:2px 4px';
+          ov.appendChild(img);
+        } else {
+          const myTurn=(mode==='admin'&&key==='admin')||
+            (mode==='signatory'&&S.signUser&&roleKey(S.signUser.role)===key&&canSign(form,key));
+          const lbl={admin:'Admin',pm:'Purchase Mgr',vp:'VP Purchase',fc:'Fin. Controller'}[key];
+          const sp=document.createElement('span');
+          if(myTurn){sp.textContent=lbl+' — click to sign';ov.onclick=doSign;}
+          else{ov.classList.add('wait');sp.textContent=lbl;}
+          ov.appendChild(sp);
+        }
+        wrap.appendChild(ov);
+      }
+      body.appendChild(wrap);
+    }
+  }catch(e){
+    body.innerHTML='<div style="color:#EF9A9A;padding:24px;text-align:center">Failed to render PDF.<br><small>'+e.message+'</small></div>';
+  }
+}
+
+// ── SIGNING ──
+function canSign(form,rk){
+  if(rk==='admin')return true;
+  if(rk==='pm')return!!form.sig_admin;
+  if(rk==='vp')return!!form.sig_pm;
+  if(rk==='fc')return!!form.sig_vp;
+  return false;
+}
+function roleKey(role){return{'Purchase Manager':'pm','VP Purchase':'vp','Finance Controller':'fc'}[role]||null;}
+
+async function doSign(){
+  const form=S.curFormData;if(!form){showToast('No form loaded.');return;}
+  let sig,rk,signedBy;
+  if(S.curMode==='admin'){
+    sig=S.adminUser.sig;rk='admin';signedBy=S.adminUser.email;
+    if(!sig){showToast('Please save your signature in Settings first.');openSettings();return;}
+  } else {
+    const u=S.signUser;if(!u)return;
+    rk=roleKey(u.role);sig=u.sig;signedBy=u.email;
+    if(!sig){showToast('Please save your signature in Settings first.');openSettings();return;}
+    if(form['sig_'+rk]){showToast('You have already signed this form.');return;}
+    if(!canSign(form,rk)){showToast('Waiting for previous signatory to sign first.');return;}
+  }
+  const btn=document.getElementById('pvBtnSign');
+  btn.disabled=true;btn.textContent='Signing…';
+  try{
+    await api('POST','/api/portal-forms/'+form.id+'/sign',{role:rk,signatureData:sig,signedBy});
+    // Update local form data
+    form['sig_'+rk]=sig;
+    const cnt=['admin','pm','vp','fc'].filter(k=>form['sig_'+k]).length;
+    form.status=cnt===4?'done':form.sig_admin?'in_circulation':'pending_admin';
+    S.curFormData=form;
+    updateSteps(form);updatePVBtns(form,S.curMode);
+    renderPDF(form,S.curMode);
+    if(S.curMode==='admin'){await loadAdminForms();if(rk==='admin')showLink(form.id);}
+    else{await loadSignForms();}
+    showToast('✓ Signature applied!');
+  }catch(e){showToast('Sign failed: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='✍ Sign Form';}
+}
+
+// ── DOWNLOAD ──
+async function downloadSigned(){
+  const form=S.curFormData;if(!form){showToast('No form loaded.');return;}
+  showToast('Preparing signed PDF…');
+  try{
+    const raw=atob(form.pdfBase64.split(',')[1]);
+    const bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+    const chunks=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const vp=page.getViewport({scale:2.5});
+      const cvs=document.createElement('canvas');cvs.width=vp.width;cvs.height=vp.height;
+      const ctx=cvs.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,vp.width,vp.height);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      const pi=p-1;
+      for(const[key,z] of Object.entries(ZONES)){
+        if(z.pg!==pi)continue;
+        const sigData=form['sig_'+key];if(!sigData)continue;
+        await new Promise(res=>{
+          const img=new Image();
+          img.onload=()=>{ctx.drawImage(img,z.l*vp.width+4,z.t*vp.height,z.w*vp.width-8,z.h*vp.height-2);res();};
+          img.onerror=res;img.src=sigData;
+        });
+      }
+      chunks.push({dataUrl:cvs.toDataURL('image/jpeg',0.95),w:vp.width,h:vp.height});
+    }
+    const pdfOut=buildPDF(chunks);
+    const blob=new Blob([pdfOut],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=form.form_no+'_signed.pdf';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    api('POST','/api/portal-forms/'+form.id+'/downloaded').catch(()=>{});
+    showToast('✓ Download started!');
+  }catch(e){showToast('Download error: '+e.message);}
+}
+
+function buildPDF(pages){
+  const enc=s=>new TextEncoder().encode(s);
+  let offset=0;const offs=[];const parts=[];
+  function push(s){const b=enc(s);parts.push(b);offset+=b.length;}
+  function pushRaw(b){parts.push(b);offset+=b.length;}
+  push('%PDF-1.4\n');
+  let oid=1;const imgIds=[],pgIds=[];
+  pages.forEach((pg,i)=>{
+    const jb=Uint8Array.from(atob(pg.dataUrl.split(',')[1]),c=>c.charCodeAt(0));
+    offs.push(offset);imgIds.push(oid);
+    push(`${oid} 0 obj\n<</Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jb.length}>>\nstream\n`);
+    pushRaw(jb);push('\nendstream\nendobj\n');oid++;
+    const cs=`q ${pg.w} 0 0 ${pg.h} 0 0 cm /Im${i} Do Q`;
+    offs.push(offset);const csId=oid;
+    push(`${oid} 0 obj\n<</Length ${cs.length}>>\nstream\n${cs}\nendstream\nendobj\n`);oid++;
+    offs.push(offset);pgIds.push(oid);
+    push(`${oid} 0 obj\n<</Type /Page /MediaBox [0 0 ${pg.w} ${pg.h}] /Contents ${csId} 0 R /Resources <</XObject <</Im${i} ${imgIds[i]} 0 R>>>>>>\n>>\nendobj\n`);oid++;
+  });
+  offs.push(offset);const pId=oid;
+  push(`${oid} 0 obj\n<</Type /Pages /Kids [${pgIds.map(id=>id+' 0 R').join(' ')}] /Count ${pages.length}>>\nendobj\n`);oid++;
+  offs.push(offset);const cId=oid;
+  push(`${oid} 0 obj\n<</Type /Catalog /Pages ${pId} 0 R>>\nendobj\n`);oid++;
+  const xo=offset;
+  push(`xref\n0 ${oid+1}\n0000000000 65535 f \n`);
+  offs.forEach(o=>push(o.toString().padStart(10,'0')+' 00000 n \n'));
+  push(`trailer\n<</Size ${oid+1} /Root ${cId} 0 R>>\nstartxref\n${xo}\n%%EOF`);
+  const total=parts.reduce((s,p)=>s+p.length,0);
+  const out=new Uint8Array(total);let pos=0;
+  parts.forEach(p=>{out.set(p,pos);pos+=p.length;});
+  return out;
+}
+
+// ── SIGNATORY FORMS ──
+async function loadSignForms(){
+  try{
+    const data=await api('GET','/api/portal-forms');
+    S.forms=(data.forms||[]).filter(f=>f.sig_admin); // only released forms
+    renderSignForms();
+  }catch(e){showToast('Failed to load forms: '+e.message);}
+}
+
+function renderSignForms(){
+  const q=(document.getElementById('srch').value||'').toLowerCase();
+  const grid=document.getElementById('signGrid');
+  let forms=S.forms;
+  if(q)forms=forms.filter(f=>f.form_no.toLowerCase().includes(q)||(f.vendor||'').toLowerCase().includes(q)||f.filename.toLowerCase().includes(q)||f.uploaded_at.includes(q));
+  if(!forms.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--mut);padding:36px">No forms released yet.</div>';return;}
+  const u=S.signUser;const rk=u?roleKey(u.role):null;
+  grid.innerHTML=forms.map(f=>{
+    const keys=['admin','pm','vp','fc'];
+    const canI=rk&&canSign(f,rk)&&!f['sig_'+rk];
+    const iSigned=rk&&f['sig_'+rk];
+    return `<div class="fc" onclick="openPV('${f.id}','signatory')">
+      <div class="fc-num">Form No. · ${esc(f.form_no)}</div>
+      <div class="fc-name">${esc(f.filename)}</div>
+      <div class="fc-meta">
+        <span>📅 ${fmtD(f.uploaded_at)}</span>
+        <span>📁 ${esc(f.category||'–')}</span>
+        ${f.vendor?`<span>🏭 ${esc(f.vendor)}</span>`:''}
+      </div>
+      <div class="fc-ftr">
+        <div class="sdots">${keys.map(k=>`<div class="sd${f['sig_'+k]?' done':''}" title="${k}"></div>`).join('')}</div>
+        ${canI?'<span class="bdg bdg-p">⌛ Your sign needed</span>':iSigned?'<span class="bdg bdg-s">✓ Signed</span>':'<span class="bdg bdg-w">Awaiting turn</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SETTINGS ──
+let sCvs,sCtx,sDrw=false,sHas=false;
+function openSettings(){
+  openMod('mSet');setTimeout(initSigCvs,80);
+  const sec=document.getElementById('setAccInfo');
+  const txt=document.getElementById('setAccTxt');
+  const u=S.signUser||S.adminUser;
+  if(u){sec.style.display='';txt.textContent=(u.name||u.email)+' · '+(u.role||'Admin')+' · '+u.email;}
+  else sec.style.display='none';
+  const stored=u?.sig;
+  if(stored){document.getElementById('sigPrev').style.display='';document.getElementById('sigPrevImg').src=stored;}
+  else document.getElementById('sigPrev').style.display='none';
+}
+function initSigCvs(){
+  sCvs=document.getElementById('sigCvs');if(!sCvs)return;
+  const wrap=sCvs.parentElement;sCvs.width=wrap.clientWidth||360;sCvs.height=130;
+  sCtx=sCvs.getContext('2d');sCtx.strokeStyle='#0D2438';sCtx.lineWidth=2;sCtx.lineCap='round';sCtx.lineJoin='round';
+  sHas=false;document.getElementById('sigHint').style.opacity='1';
+  function pt(e){const r=sCvs.getBoundingClientRect();return[(e.clientX-r.left)*(sCvs.width/r.width),(e.clientY-r.top)*(sCvs.height/r.height)];}
+  sCvs.onpointerdown=e=>{sDrw=true;sCtx.beginPath();const[x,y]=pt(e);sCtx.moveTo(x,y);sCvs.setPointerCapture(e.pointerId);};
+  sCvs.onpointermove=e=>{if(!sDrw)return;const[x,y]=pt(e);sCtx.lineTo(x,y);sCtx.stroke();sHas=true;document.getElementById('sigHint').style.opacity='0';};
+  sCvs.onpointerup=sCvs.onpointercancel=()=>sDrw=false;
+}
+function clearSig(){if(sCtx){sCtx.clearRect(0,0,sCvs.width,sCvs.height);sHas=false;document.getElementById('sigHint').style.opacity='1';}}
+async function saveSig(){
+  if(!sHas){showToast('Please draw your signature first.');return;}
+  const d=sCvs.toDataURL('image/png');
+  const btn=document.getElementById('btnSaveSig');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const u=S.signUser||S.adminUser;
+    await api('POST','/api/auth/save-signature',{userId:u.id,signatureData:d});
+    u.sig=d; // update in-memory
+    if(S.signUser)S.signUser.sig=d;
+    if(S.adminUser)S.adminUser.sig=d;
+    document.getElementById('sigPrev').style.display='';document.getElementById('sigPrevImg').src=d;
+    showToast('✓ Signature saved to Supabase!');
+  }catch(e){showToast('Save failed: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Save Signature';}
+}
+
+// ── LINK ──
+function showLink(id){
+  const base=window.location.href.split('?')[0];
+  document.getElementById('genLinkTxt').textContent=base+'?portal=sign';
+  openMod('mLink');
+}
+function copyLink(){navigator.clipboard.writeText(document.getElementById('genLinkTxt').textContent).then(()=>showToast('✓ Link copied!'));}
+
+// ── UTILS ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtD(iso){return new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+let _tt;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3500);}
+
+// ── ARCHIVE & CLEAR ──
+async function runArchive(){
+  const btn=document.getElementById('btnArchive');
+  const status=document.getElementById('archiveStatus');
+  const prog=document.getElementById('archiveProgress');
+  const bar=document.getElementById('archiveBar');
+  const lbl=document.getElementById('archiveLabel');
+
+  // Get fully signed forms
+  const signedForms=S.forms.filter(f=>f.sig_admin&&f.sig_pm&&f.sig_vp&&f.sig_fc);
+  if(!signedForms.length){
+    status.textContent='No fully signed forms to archive.';status.style.color='var(--mut)';return;
+  }
+  if(!confirm(`Archive and delete ${signedForms.length} fully signed form(s)? This cannot be undone.`))return;
+
+  btn.disabled=true;btn.textContent='Working…';
+  prog.style.display='block';
+  status.textContent=`Processing ${signedForms.length} form(s)…`;status.style.color='#4A148C';
+
+  const zip=new JSZip();
+  let done=0;
+
+  for(const formMeta of signedForms){
+    lbl.textContent=`Fetching ${formMeta.form_no} (${done+1}/${signedForms.length})…`;
+    try{
+      // Fetch full form with PDF
+      const data=await api('GET','/api/portal-forms/'+formMeta.id);
+      const form=data.form;
+
+      lbl.textContent=`Rendering ${form.form_no}…`;
+      // Render PDF with signatures composited
+      const raw=atob(form.pdfBase64.split(',')[1]);
+      const bytes=new Uint8Array(raw.length);
+      for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+      const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+      const chunks=[];
+
+      for(let p=1;p<=pdf.numPages;p++){
+        const page=await pdf.getPage(p);
+        const vp=page.getViewport({scale:2.5});
+        const cvs=document.createElement('canvas');
+        cvs.width=vp.width;cvs.height=vp.height;
+        const ctx=cvs.getContext('2d');
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,vp.width,vp.height);
+        await page.render({canvasContext:ctx,viewport:vp}).promise;
+        // Composite signatures
+        const pi=p-1;
+        for(const[key,z] of Object.entries(ZONES)){
+          if(z.pg!==pi)continue;
+          const sigData=form['sig_'+key];if(!sigData)continue;
+          await new Promise(res=>{
+            const img=new Image();
+            img.onload=()=>{ctx.drawImage(img,z.l*vp.width+4,z.t*vp.height,z.w*vp.width-8,z.h*vp.height-2);res();};
+            img.onerror=res;img.src=sigData;
+          });
+        }
+        chunks.push({dataUrl:cvs.toDataURL('image/jpeg',0.95),w:vp.width,h:vp.height});
+      }
+
+      // Build PDF bytes
+      const pdfBytes=buildPDF(chunks);
+      const safeName=form.form_no.replace(/[^a-zA-Z0-9_\-]/g,'_')+'_signed.pdf';
+      zip.file(safeName, pdfBytes);
+
+      // Delete from Supabase
+      await api('DELETE','/api/portal-forms/'+form.id);
+
+    }catch(e){
+      console.error('Archive error for '+formMeta.form_no,e);
+      lbl.textContent=`⚠ Error on ${formMeta.form_no}: ${e.message}`;
+    }
+
+    done++;
+    bar.style.width=Math.round((done/signedForms.length)*100)+'%';
+  }
+
+  // Generate and download ZIP
+  lbl.textContent='Generating ZIP…';
+  const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+  const url=URL.createObjectURL(zipBlob);
+  const a=document.createElement('a');
+  const dateStr=new Date().toISOString().slice(0,10);
+  a.href=url;a.download=`TKE_Signed_Forms_Archive_${dateStr}.zip`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+
+  status.textContent=`✓ ${done} form(s) archived and cleared from Supabase.`;
+  status.style.color='var(--grn)';
+  btn.disabled=false;btn.textContent='⬇ Download ZIP & Clear';
+  await loadAdminForms(); // refresh table
+  showToast(`✓ ${done} forms archived. ZIP downloaded.`);
+}
+
+// ── INIT ──
+(function(){
+  if(!API_BASE||API_BASE==='YOUR_RENDER_URL'){document.getElementById('apiWarning').style.display='block';}
+  const p=new URLSearchParams(window.location.search).get('portal');
+  if(p==='sign')goPortal('sign');else if(p==='admin')goPortal('admin');
+})();
+</script>
+</body>
+</html>
