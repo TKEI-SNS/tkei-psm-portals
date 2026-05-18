@@ -92,10 +92,10 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 .pdf-section-title{font-size:.79rem;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:3px;margin:11px 0 6px;text-transform:uppercase;letter-spacing:.02em;}
 .pdf-row{display:flex;font-size:.74rem;padding:3px 0;border-bottom:1px solid #eee;}
 .pdf-row b{min-width:120px;color:#444;}
-.pdf-tbl{width:100%;border-collapse:collapse;font-size:.58rem;margin:6px 0;table-layout:fixed;}
-.pdf-tbl th,.pdf-tbl td{border:1px solid #bbb;padding:2px 4px;text-align:left;overflow:hidden;text-overflow:ellipsis;word-wrap:break-word;}
-.pdf-tbl th{background:#f0f3f8;font-weight:700;font-size:.55rem;text-transform:uppercase;white-space:nowrap;}
-.pdf-tbl td.num{text-align:right;white-space:nowrap;}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:.69rem;margin:6px 0;}
+.pdf-tbl th,.pdf-tbl td{border:1px solid #bbb;padding:3px 6px;text-align:left;}
+.pdf-tbl th{background:#f0f3f8;font-weight:700;font-size:.65rem;text-transform:uppercase;}
+.pdf-tbl td.num{text-align:right;}
 /* PDF sig zone */
 .pdf-sig-zone{display:flex;margin-top:16px;gap:8px;}
 .pdf-sig-box{flex:1;text-align:center;}
@@ -167,16 +167,16 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 .dot-ok{background:var(--green);}.dot-miss{background:var(--red);}.dot-warn{background:var(--amber);}
 .inline-sig-thumb{max-height:30px;max-width:96px;object-fit:contain;vertical-align:bottom;}
 
-/* Light text on dark backgrounds */
-.card-head, .nav-item, .metadata-grid, [style*="background:#"], [style*="background: #"] {
-  color: #f5f5dc !important; /* beige */
-}
-.card-head h3, .nav-item, .metadata-label {
-  color: #f5f5dc !important;
-}
-.dim, .text-dim {
-  color: #ddd !important;
-}
+/* Dark-theme text: light on dark backgrounds */
+.card-head h3{color:var(--text) !important;}
+.dim,.text-dim{color:var(--text-dim) !important;}
+
+/* PDF pages: FORCE dark text on white background */
+.pdf-page,.pdf-page *{color:#222 !important;}
+.pdf-page .sig-ph{color:#bbb !important;}
+.pdf-page .pdf-chk.on{color:#fff !important;}
+.pdf-page td[style*="#c0392b"],.pdf-page span[style*="#c0392b"]{color:#c0392b !important;}
+.pdf-page td[style*="#27ae60"],.pdf-page span[style*="#27ae60"]{color:#27ae60 !important;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
 function renderTracker(){
@@ -295,7 +295,6 @@ const state={
   sigPadFor:null,  // id being drawn or 'admin'
   saveTo:'',toast:null,modal:null,dragIdx:null,
   sequential:false,
-  // Currency conversion: effective rate = conversionFactor × exchangeFactor
   fxRates:{
     CNY:{conversionFactor:1,exchangeFactor:1},
     USD:{conversionFactor:1,exchangeFactor:1},
@@ -304,10 +303,10 @@ const state={
 };
 
 // ── helpers ──
-function getTodayDate(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmt(n){return n==null||isNaN(n)?'—':(+n).toFixed(2);}
 function fmtPct(n){return n==null||isNaN(n)?'—':(+n).toFixed(2)+'%';}
 function calcRow(it){
+  // Normalise field aliases: precalc uploads use snake_case, manual entries use camelCase
   const np=parseFloat(it.new_price||it.newPrice||0);
   const op=parseFloat(it.old_price||it.oldPrice||0);
   const vol=parseFloat(it.porv_qty||it.yearlyVol||0);
@@ -317,20 +316,14 @@ function calcRow(it){
   it.orderType=it.order_type;
   it.priceDiff=np-op; it.price_diff=it.priceDiff;
   it.pctDiff=op?(it.priceDiff/op)*100:0; it.percent_diff=it.pctDiff;
-  // Base cost impact in original currency
   const baseCostImpact=it.priceDiff*vol;
-  // Apply FX conversion if currency is foreign
   const curr=(it.currency||'INR').toUpperCase().trim();
   const fx=state.fxRates[curr];
   if(fx && curr!=='INR'){
     const rate=(parseFloat(fx.conversionFactor)||1)*(parseFloat(fx.exchangeFactor)||1);
-    it.costImpactINR=baseCostImpact*rate;
-    it.fxRate=rate;
-  }else{
-    it.costImpactINR=baseCostImpact;
-    it.fxRate=1;
-  }
-  it.costImpact=it.costImpactINR; it.impact=it.costImpact;
+    it.costImpact=baseCostImpact*rate;it.fxRate=rate;
+  }else{it.costImpact=baseCostImpact;it.fxRate=1;}
+  it.impact=it.costImpact;
 }
 function calcTotals(){let ti=0,tv=0,sp=0,cnt=0;state.items.forEach(it=>{calcRow(it);ti+=it.costImpact||0;tv+=it.yearlyVol||0;if(it.oldPrice){sp+=it.pctDiff||0;cnt++;}});return{avgPctDiff:cnt?sp/cnt:0,totalVol:tv,totalImpact:ti,quarterlyImpact:ti/4};}
 function showToast(msg){state.toast=msg;render();setTimeout(()=>{state.toast=null;render();},2600);}
@@ -370,9 +363,9 @@ function applyParsedData(rows){
   let hIdx=-1;
   for(let i=0;i<rows.length;i++){if(rows[i].some(c=>String(c).toLowerCase().includes('item code'))){hIdx=i;break;}}
   if(hIdx<0){showToast('No header');return;}
-  for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){let raw=String(r[1]||'').trim();if(raw&&!isNaN(raw)&&parseFloat(raw)>40000)raw=new Date((parseFloat(raw)-25569)*86400000).toISOString().split('T')[0];state.date=raw.split(' ')[0]||state.date;}}
+  for(let i=0;i<hIdx;i++){const r=rows[i];if(r[0]&&String(r[0]).toLowerCase().includes('vendor')){state.vendorCode=String(r[1]||'').trim();state.vendor=String(r[2]||'').trim();}if(r[0]&&String(r[0]).toLowerCase().includes('date')){state.date=new Date().toISOString().split('T')[0];}}
   state.items=[];
-  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const newPr=parseFloat(r[4])||0;const curr=String(r[5]||'INR').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,newPrice:newPr,currency:curr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i],f=String(r[0]||'').trim();if(!f||isNaN(f))break;const itemCode=String(r[0]||'').trim();const itemDesc=String(r[1]||'').trim();const vendCode=String(r[2]||'').trim();const vendName=String(r[3]||'').trim();const newPr=parseFloat(r[4])||0;const curr=String(r[5]||'INR').trim();const orderType=String(r[6]||'').trim();if(!itemCode)continue;state.items.push({id:state.items.length,itemCode:itemCode,itemDescription:itemDesc,vendorCode:vendCode,vendorName:vendName,newPrice:newPr,currency:curr,orderType:orderType,order_type:orderType,item_code:itemCode,item_description:itemDesc,vendor_code:vendCode,vendor_name:vendName,new_price:newPr,oldPrice:0,priceDiff:0,pctDiff:0,porv:0,impact:0,remarks:''});calcRow(state.items[state.items.length-1]);}
   state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=[];
   for(let i=0;i<rows.length;i++){const r=rows[i],c0=String(r[0]||'').trim().toUpperCase();if(c0==='CATEGORY'){const cv=String(r[1]||'').trim().toUpperCase();if(cv==='ELECTRICAL'||cv==='MECHANICAL')state.category=cv;}if(c0==='PRICING'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PRICING_OPTIONS.includes(v))state.pricingChecks.push(v);}}if(c0==='QUALITY / PDC'||c0==='QUALITY/PDC'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&QUALITY_OPTIONS.includes(v))state.qualityChecks.push(v);}}if(c0==='PART TYPE'){for(let c=1;c<r.length;c++){const v=String(r[c]||'').trim();if(v&&PARTTYPE_OPTIONS.includes(v))state.partTypeChecks.push(v);}}}
   applyCategoryToSigners();
@@ -476,7 +469,7 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
       <div class="topbar-left"><h2>${{setup:'Admin Setup',upload:'Upload Input',review:'Review & Preview',signers:'Signatories',send:'Send Envelope',done:'Complete'}[state.page]||''}</h2><span>Form No. <strong style="color:var(--accent)">${state.formNo}</strong></span></div>
       <div class="topbar-right">
         ${state.adminEmail?'<span class="dim">'+state.adminEmail+'</span>':''}
-        <div class="avatar" onclick="state.page='setup';render()" title="Settings">SS</div>
+        <div class="avatar" style="display:none;" onclick="state.page='setup';render()" title="Settings">SS</div>
       </div>
     </div>
     <div class="content">${renderPage()}</div>
@@ -496,6 +489,8 @@ function renderSetup(){
   const hasE=!!state.adminEmail,hasP=!!state.onedrivePath,hasM=state.emailPermission,hasSig=!!state.signatures[1];
   const allOk=hasE&&hasP&&hasM;
   return `
+  <!-- HIDDEN: Admin Configuration -->
+  <div style="display:none;">
   <div class="card">
     <div class="card-head"><h3>⚙️ Admin Configuration</h3>${allOk?'<span class="badge badge-green">✓ Ready</span>':'<span class="badge" style="background:var(--amber-dim);color:var(--amber)">Needs input</span>'}</div>
     <div class="card-body">
@@ -538,11 +533,13 @@ function renderSetup(){
         </div>
       </div>
     </div>
+  </div>
+  </div><!-- END HIDDEN -->
 
   <div class="card">
     <div class="card-head"><h3>💱 Currency Conversion to INR</h3></div>
     <div class="card-body">
-      <p class="dim" style="margin-bottom:12px;">For items priced in foreign currency, set the <b>Conversion Factor</b> and <b>Exchange Factor</b>. The effective INR rate = Conversion Factor × Exchange Factor. This is multiplied with cost impact values for items in that currency.</p>
+      <p class="dim" style="margin-bottom:12px;">Effective INR rate = Conversion Factor × Exchange Factor. Applied to cost impact for items in that currency.</p>
       <div style="display:flex;flex-direction:column;gap:14px;">
         ${['CNY','USD','EUR'].map(c=>`
         <div style="background:var(--surface);border-radius:8px;padding:12px 16px;">
@@ -568,6 +565,8 @@ function renderSetup(){
     </div>
   </div>
 
+  <!-- HIDDEN: Database Sync -->
+  <div style="display:none;">
   <div class="card">
     <div class="card-head"><h3>🔄 Database Sync</h3></div>
     <div class="card-body">
@@ -588,6 +587,7 @@ function renderSetup(){
       ${state.syncStatus?'<div style="margin-top:10px;padding:10px;background:var(--green-dim);border-radius:6px;"><strong>'+state.syncStatus.info.toLocaleString()+'</strong> info, <strong>'+state.syncStatus.porv.toLocaleString()+'</strong> PORV</div>':''}
     </div>
   </div>
+  </div><!-- END HIDDEN: Database Sync -->
   
   <div style="text-align:center;margin-top:24px;">
     <button class="btn btn-primary" onclick="state.page='upload';render()">Continue → Upload</button>
@@ -677,7 +677,7 @@ function renderPDFPage1(){
   return `
   <div class="pdf-page">
     <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Cost Approval Form</h2><div style="width:30px"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:#000;margin-bottom:7px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:var(--text);margin-bottom:7px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
     <div class="pdf-row"><b>Initiated By</b><span>Name: ${cb.name||'—'} &nbsp;|&nbsp; Category: ${state.category.charAt(0)+state.category.slice(1).toLowerCase()} &nbsp;|&nbsp; Dept: PSM</span></div>
     <div class="pdf-section-title">Reason of Change</div>
     <div class="pdf-reasons">
@@ -690,11 +690,11 @@ function renderPDFPage1(){
     <div class="pdf-row"><b>Product Line Impacted</b><span>${state.productLine||"All"}</span></div>
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
-    <table class="pdf-tbl"><col style="width:10%"/><col style="width:8%"/><col style="width:12%"/><col style="width:22%"/><col style="width:11%"/><col style="width:11%"/><col style="width:9%"/><col style="width:7%"/><col style="width:10%"/><thead><tr><th>Old Code</th><th>Old Desc</th><th>New Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty</th><th>Impact</th></tr></thead><tbody>
+    <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
     ${d2.map(it=>`<tr><td>—</td><td>—</td><td>${it.item_code}</td><td style="max-width:110px">${it.item_description||""}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">1</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td></tr>`).join('')}
     <tr style="background:#f0f3f8;font-weight:700"><td colspan="8" style="text-align:right">Total</td><td class="num" style="color:${totalD>=0?'#c0392b':'#27ae60'}">${fmt(totalD)}</td></tr>
     </tbody></table>
-    <div style="font-size:.6rem;color:#000;text-align:right;margin-top:2px">All Costs are in INR</div>
+    <div style="font-size:.6rem;color:var(--text);text-align:right;margin-top:2px">All Costs are in INR</div>
     <!-- Signatures -->
     <div class="pdf-sig-zone">
       ${sigSlots.map(sl=>`<div class="pdf-sig-box"><div class="sig-line">${state.signatures[sl.id]?'<img src="'+state.signatures[sl.id]+'" alt="sig"/>':'<span class="sig-ph">Signature</span>'}</div><div class="sig-lbl">${sl.label}</div><div class="sig-nm">${sl.name}</div></div>`).join('')}
@@ -704,36 +704,25 @@ function renderPDFPage1(){
   </div>`;
 }
 
-// ═══ PDF PAGE 2+ ─── Annexure paginated: 50 rows per .pdf-page div ═══
+// ═══ PDF PAGE 2 ─── TKE top, FULL table, INR bottom ═══
 function renderPDFPage2(){
   const t=calcTotals();
-  const todayStr=getTodayDate();
-  const ROWS_PER_PAGE=50;
-  const totalPages=Math.max(1,Math.ceil(state.items.length/ROWS_PER_PAGE));
-  let html='';
-  for(let pg=0;pg<totalPages;pg++){
-    const s=pg*ROWS_PER_PAGE;
-    const e=Math.min(s+ROWS_PER_PAGE,state.items.length);
-    const chunk=state.items.slice(s,e);
-    const isLast=(pg===totalPages-1);
-    html+=`
-    <div class="pdf-page" style="padding:20px 22px 16px;">
-      <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Annexure — Item Price Details</h2><div style="width:30px"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:5px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Page ${pg+1} of ${totalPages} &nbsp;|&nbsp; Date: <b>${todayStr}</b></span></div>
-      ${pg===0?`<div class="pdf-row"><b>Vendor Code</b><span>${state.items[0]?.vendor_code||''}</span></div><div class="pdf-row"><b>Vendor Name</b><span>${state.items[0]?.vendor_name||''}</span></div>`:''}
-      <table class="pdf-tbl" style="margin-top:6px;"><col style="width:3%"/><col style="width:11%"/><col style="width:24%"/><col style="width:7%"/><col style="width:10%"/><col style="width:10%"/><col style="width:9%"/><col style="width:7%"/><col style="width:8%"/><col style="width:11%"/><thead><tr><th>#</th><th>Item Code</th><th>Description</th><th>Order</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yrly Vol</th><th>Cost Impact</th></tr></thead><tbody>
-      ${chunk.map((it,i)=>`<tr><td>${s+i+1}</td><td>${it.item_code||''}</td><td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.item_description||''}</td><td>${it.order_type||it.orderType||''}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
-      </tbody></table>
-      ${isLast?`
-      <div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:8px;font-size:.7rem;gap:2px;">
-        <div style="border-top:2px solid #222;padding-top:4px;display:flex;gap:28px;"><div><b>Avg % Price Diff:</b> ${fmtPct(t.avgPctDiff)}</div><div><b>Total Yearly Vol:</b> ${t.totalVol}</div></div>
-        <div><b>Total Yearly Impact (INR):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.totalImpact)}</span></div>
-        <div><b>Total Quarterly Impact (INR):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span></div>
-      </div>`:`<div style="text-align:right;font-size:.6rem;color:#888;margin-top:3px;font-style:italic;">Continued on next page…</div>`}
-      <div class="pdf-footer"><span>All amounts in Indian Rupees</span><img src="${INR_LOGO}" alt="INR"/></div>
-    </div>`;
-  }
-  return html;
+  return `
+  <div class="pdf-page">
+    <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Annexure — Item Price Details</h2><div style="width:30px"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:var(--text);margin-bottom:6px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div class="pdf-row"><b>Vendor Code</b><span>${state.items[0]?.vendor_code}</span></div>
+    <div class="pdf-row"><b>Vendor Name</b><span>${state.items[0]?.vendor_name}</span></div>
+    <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
+    ${state.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.item_code}</td><td>${it.item_code}</td><td>${it.item_description||""}</td><td class="num">${fmt(it.new_price||it.newPrice||0)}</td><td class="num">${fmt(it.old_price||it.oldPrice||0)}</td><td class="num" style="color:${(it.price_diff||it.priceDiff||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.price_diff||it.priceDiff||0)}</td><td class="num">${fmtPct(it.percent_diff||it.pctDiff||0)}</td><td class="num">${it.porv_qty||0}</td><td class="num" style="color:${(it.impact||it.costImpact||0)>=0?'#c0392b':'#27ae60'}">${fmt(it.impact||it.costImpact||0)}</td></tr>`).join('')}
+    </tbody></table>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;margin-top:6px;font-size:.72rem;gap:2px;">
+      <div style="border-top:2px solid #222;padding-top:5px;display:flex;gap:34px;"><div><b>Avg % Price Diff:</b> ${fmtPct(t.avgPctDiff)}</div><div><b>Total Yearly Vol:</b> ${t.totalVol}</div></div>
+      <div><b>Total Yearly Impact (INR):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.totalImpact)}</span></div>
+      <div><b>Total Quarterly Impact (INR):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span></div>
+    </div>
+    <div class="pdf-footer"><span>All amounts in Indian Rupees</span><img src="${INR_LOGO}" alt="INR"/></div>
+  </div>`;
 }
 
 // ═══ 3. SIGNERS ═══
@@ -904,11 +893,9 @@ function bindEvents(){
   const eas=document.getElementById('editAdminSig');if(eas)eas.onclick=()=>{state.sigPadFor='admin';state.modal={type:'sigpad'};render();};
   // FX rate inputs
   document.querySelectorAll('.fx-input').forEach(inp=>{inp.oninput=()=>{
-    const curr=inp.dataset.curr;const field=inp.dataset.field;
+    const curr=inp.dataset.curr,field=inp.dataset.field;
     state.fxRates[curr][field]=parseFloat(inp.value)||0;
-    // Recalc all items with new rates
     state.items.forEach(calcRow);
-    // Don't re-render (would lose focus), just update the rate display
     const rateEl=inp.closest('[style*="background:var(--surface)"]')?.querySelector('[style*="color:var(--accent)"]');
     if(rateEl)rateEl.textContent='₹ '+(state.fxRates[curr].conversionFactor*state.fxRates[curr].exchangeFactor).toFixed(4);
   };});
@@ -943,7 +930,7 @@ function bindEvents(){
 function handleFile(file){if(file.name.endsWith('.csv')){const r=new FileReader();r.onload=(e)=>parseCSV(e.target.result);r.readAsText(file);}else parseExcel(file);}
 
 function loadSample(){
-  state.vendorCode='3010453056';state.vendor='Shanghai Zhongling Electronics';state.date='2026-02-03';
+  state.vendorCode='3010453056';state.vendor='Shanghai Zhongling Electronics';state.date=new Date().toISOString().split('T')[0];
   state.category='ELECTRICAL';state.pricingChecks=[];state.qualityChecks=[];state.partTypeChecks=['New Part'];
   state.items=[
     {id:0,fsItemCode:'1910675981',itemCode:'1910675981',desc:'DSC COP CH1A-A35D8_14 STOPS_79425228-229',newPrice:2494.66,oldPrice:2110,yearlyVol:11,priceDiff:0,pctDiff:0,costImpact:0},
