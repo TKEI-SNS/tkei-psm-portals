@@ -641,10 +641,11 @@ function bindAuthEvents(){
 }
 
 async function handleAuthSubmit(){
-  state.authBusy = true; state.authMsg = ''; render();
+  // Read inputs FIRST — before any render() call, since render rebuilds the DOM and clears inputs.
   const email = (document.getElementById('authEmail')?.value || '').trim();
   const password = document.getElementById('authPassword')?.value || '';
   const name = (document.getElementById('authName')?.value || '').trim();
+  state.authBusy = true; state.authMsg = ''; render();
   try {
     if (state.authMode === 'signup') {
       if (!name) throw new Error('Full name is required');
