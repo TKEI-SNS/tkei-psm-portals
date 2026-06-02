@@ -919,7 +919,10 @@ function renderReview(){
     <div class="card-body">
       <div style="margin-bottom:16px;"><div class="mini-label" style="margin-bottom:8px">Department Category</div>
         <div class="cat-pills"><div class="cat-pill ${state.category==='ELECTRICAL'?'active':''}" data-cat="ELECTRICAL">⚡ Electrical</div><div class="cat-pill ${state.category==='MECHANICAL'?'active':''}" data-cat="MECHANICAL">⚙️ Mechanical</div></div>
-        <p class="dim" style="margin-top:6px">Checked By → <strong style="color:var(--accent)">${cb.name||'—'}</strong></p>
+        <div style="margin-top:10px;">
+          <label class="mini-label" style="display:block;margin-bottom:5px;">Checked By</label>
+          <input type="text" id="checkedByInput" style="width:100%;max-width:340px;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="e.g. Mr. Pratul Bhasker" value="${(getCheckedBy().name||'').replace(/&quot;/g,'&quot;')}" oninput="(state.signers.find(s=>s.role==='Checked By')||state.signers[1]).name=this.value;"/>
+        </div>
       </div>
       <div style="margin-bottom:16px;">
         <label>Details of Change (Minimum 6 characters)</label>
@@ -963,7 +966,12 @@ function renderPDFPage1(){
   const d2=state.items.slice(0,2);
   const totalD=d2.reduce((a,i)=>a+(i.price_diff||i.priceDiff||0),0);
   function cg(opts,checked){return opts.map(o=>`<div class="chk-line"><span class="pdf-chk ${checked.includes(o)?'on':''}">${checked.includes(o)?'✓':''}</span>${o}</div>`).join('');}
-  const sigSlots=[{id:1,label:'Prepared By',name:'Sohail Shaikh'},{id:2,label:'Checked By',name:cb.name||'—'},{id:3,label:'Approved By',name:'VP Purchase'},{id:4,label:'Approved By',name:'Finance Controller'}];
+  const sigSlots=[
+    {id:1,label:'Prepared By',name:(state.signers[0]?.name)||(state.authUser?.name)||'—'},
+    {id:2,label:'Checked By',name:cb.name||'—'},
+    {id:3,label:'Approved By',name:(state.signers[2]?.name)||'VP Purchase'},
+    {id:4,label:'Approved By',name:(state.signers[3]?.name)||'Finance Controller'},
+  ];
   return `
   <div class="pdf-page">
     <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Cost Approval Form</h2><div style="width:30px"></div></div>
