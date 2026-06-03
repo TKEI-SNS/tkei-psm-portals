@@ -212,7 +212,7 @@ async function downloadPDF(){
   const{jsPDF}=window.jspdf;
   const pdf=new jsPDF('p','mm','a4');
   const pages=document.querySelectorAll('.pdf-page');
-  
+
   for(let i=0;i<pages.length;i++){
     if(i>0)pdf.addPage();
     const canvas=await html2canvas(pages[i],{scale:3,useCORS:true,logging:false});
@@ -221,53 +221,16 @@ async function downloadPDF(){
     const imgHeight=(canvas.height*imgWidth)/canvas.width;
     pdf.addImage(imgData,'JPEG',0,0,imgWidth,imgHeight);
   }
-  
-  pdf.save('Form_'+state.formNumber+'.pdf');
+
+  pdf.save('Form_'+(state.formNumber||'unsaved')+'.pdf');
   showToast('✅ PDF downloaded');
-  fetch(API_URL+'/api/forms/'+state.formNumber+'/downloaded',{method:'POST'}).catch(e=>0);
+  // Notify backend (authed so download stamp goes onto the right user's metadata row)
+  authedFetch('/api/forms/'+encodeURIComponent(state.formNumber)+'/downloaded',{method:'POST'}).catch(()=>{});
 }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
-async function downloadPDF(){
-  showToast('Generating PDF...');
-  const{jsPDF}=window.jspdf;
-  const pdf=new jsPDF('p','mm','a4');
-  const pages=document.querySelectorAll('.pdf-page');
-  
-  for(let i=0;i<pages.length;i++){
-    if(i>0)pdf.addPage();
-    const canvas=await html2canvas(pages[i],{scale:3,useCORS:true,logging:false});
-    const imgData=canvas.toDataURL('image/jpeg',1.0);
-    const imgWidth=210;
-    const imgHeight=(canvas.height*imgWidth)/canvas.width;
-    pdf.addImage(imgData,'JPEG',0,0,imgWidth,imgHeight);
-  }
-  
-  pdf.save('Form_'+state.formNumber+'.pdf');
-  showToast('✅ PDF downloaded');
-  fetch(API_URL+'/api/forms/'+state.formNumber+'/downloaded',{method:'POST'}).catch(e=>0);
-}
-</script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-async function downloadPDF(){
-  showToast('Generating PDF...');
-  const{jsPDF}=window.jspdf;
-  const pdf=new jsPDF('p','mm','a4');
-  const pages=document.querySelectorAll('.pdf-page');
-  
-  for(let i=0;i<pages.length;i++){
-    if(i>0)pdf.addPage();
-    const canvas=await html2canvas(pages[i],{scale:3,useCORS:true,logging:false});
-    const imgData=canvas.toDataURL('image/jpeg',1.0);
-    const imgWidth=210;
-    const imgHeight=(canvas.height*imgWidth)/canvas.width;
-    pdf.addImage(imgData,'JPEG',0,0,imgWidth,imgHeight);
-  }
-  
-  pdf.save('Form_'+state.formNumber+'.pdf');
-  showToast('✅ PDF downloaded');
-  fetch(API_URL+'/api/forms/'+state.formNumber+'/downloaded',{method:'POST'}).catch(e=>0);
-}
-</script></head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
 <body>
 <div class="shell" id="app"></div>
 <script>
@@ -288,7 +251,7 @@ const state={
   authUser:null,
   myForms:[],
   myFormsLoading:false,
-  items:[],formNo:1001,vendor:'',vendorCode:'',date:new Date().toISOString().split('T')[0],
+  items:[],vendor:'',vendorCode:'',date:new Date().toISOString().split('T')[0],
   productLine:'All',
   category:'ELECTRICAL',
   pricingChecks:[],qualityChecks:[],partTypeChecks:['New Part'],
@@ -486,14 +449,14 @@ async function sendEnvelope() {
     for(let i = 0; i < state.signers.length; i++) {
       const signer = state.signers[i];
       
-      const formLink = window.location.href.split('?')[0] + '?form=' + (state.formNumber || state.formNo);
+      const formLink = window.location.href.split('?')[0] + '?form=' + (state.formNumber || '—');
       
       const res = await fetch(API_URL + '/api/send-email', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           to: signer.email,
-          formNo: state.formNumber || state.formNo,
+          formNo: state.formNumber || '—',
           formLink: formLink,
           signerName: signer.name,
           signerRole: signer.role
@@ -554,7 +517,7 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
   </div>
   <div class="main" style="display:flex;flex-direction:column;min-height:100vh;">
     <div class="topbar">
-      <div class="topbar-left"><h2>${{setup:'Admin Setup',upload:'Upload Input',review:'Review & Preview',signers:'Signatories',send:'Send Envelope',done:'Complete'}[state.page]||''}</h2><span>Form No. <strong style="color:var(--accent)">${state.formNo}</strong></span></div>
+      <div class="topbar-left"><h2>${{setup:'Admin Setup',upload:'Upload Input',review:'Review & Preview',signers:'Signatories',send:'Send Envelope',done:'Complete'}[state.page]||''}</h2>${state.formNumber?'<span>Form No. <strong style="color:var(--accent)">'+state.formNumber+'</strong></span>':''}</div>
       <div class="topbar-right">
         ${state.authUser?'<span class="dim" style="font-size:.85rem;">'+state.authUser.name+'</span>':''}
         <button id="signOutBtn" class="btn btn-ghost btn-sm" style="font-size:.78rem;padding:5px 12px;">Sign out</button>
@@ -642,14 +605,24 @@ function bindAuthEvents(){
 
 async function handleAuthSubmit(){
   // Read inputs FIRST — before any render() call, since render rebuilds the DOM and clears inputs.
-  const email = (document.getElementById('authEmail')?.value || '').trim();
+  const email = (document.getElementById('authEmail')?.value || '').trim().toLowerCase();
   const password = document.getElementById('authPassword')?.value || '';
   const name = (document.getElementById('authName')?.value || '').trim();
+
+  // Domain restriction: only @tkelevator.com emails permitted across all portals.
+  const ALLOWED_DOMAIN = '@tkelevator.com';
+  function checkDomain(e) {
+    if (!e.endsWith(ALLOWED_DOMAIN)) {
+      throw new Error('Only TK Elevator emails (' + ALLOWED_DOMAIN + ') are permitted.');
+    }
+  }
+
   state.authBusy = true; state.authMsg = ''; render();
   try {
     if (state.authMode === 'signup') {
       if (!name) throw new Error('Full name is required');
       if (!email || !password) throw new Error('Email and password required');
+      checkDomain(email);
       const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
       if (error) throw error;
       if (!data.session) {
@@ -660,6 +633,7 @@ async function handleAuthSubmit(){
       }
     } else if (state.authMode === 'forgot') {
       if (!email) throw new Error('Enter your email to receive a reset link');
+      checkDomain(email);
       const { error } = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: location.origin + location.pathname,
       });
@@ -675,12 +649,18 @@ async function handleAuthSubmit(){
       else { state.authMode = 'signin'; }
     } else { // signin
       if (!email || !password) throw new Error('Email and password required');
+      checkDomain(email);
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
       applySession(data.session); state.page = 'setup';
     }
   } catch (e) {
-    state.authMsg = e.message || 'Authentication failed';
+    // Friendlier error for Supabase's free-tier email rate limit (4/hour)
+    let msg = e.message || 'Authentication failed';
+    if (/rate limit|email rate/i.test(msg)) {
+      msg = 'Email rate limit reached. Supabase\'s free tier allows ~4 confirmation emails per hour per project. Wait an hour and try again, or ask the admin to disable email confirmation in Supabase → Authentication → Email Auth.';
+    }
+    state.authMsg = msg;
   } finally {
     state.authBusy = false; render();
   }
@@ -925,21 +905,13 @@ function renderReview(){
         </div>
       </div>
       <div style="margin-bottom:16px;">
-        <label>Details of Change (Minimum 6 characters)</label>
-        <div style="margin-bottom:16px;">
-        <label>Product Line Impacted</label>
-        <input type="text" id="productLineInput" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="e.g., All" value="${state.productLine||'All'}" onchange="state.productLine=this.value;render();"/>
-      </div>
-      <textarea id="detailsInput" rows="2" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="Enter details of change..." onchange="state.detailsOfChange=this.value;render();">${state.detailsOfChange||''}</textarea>
-      </div>
-            <div style="margin-bottom:16px;">
         <label>Details of Change <span style="color:var(--red)">*</span> (Min 6 characters)</label>
-        <textarea id="detailsInput" rows="2" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="Enter details of change (min 6 chars)..." oninput="state.detailsOfChange=this.value;render();">${state.detailsOfChange||''}</textarea>
+        <textarea id="detailsInput" rows="2" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="Enter details of change (min 6 chars)..." oninput="state.detailsOfChange=this.value;">${state.detailsOfChange||''}</textarea>
         ${(state.detailsOfChange||'').length<6?'<p style="color:var(--red);font-size:0.85rem;margin:4px 0 0;">Required: Minimum 6 characters</p>':''}
       </div>
       <div style="margin-bottom:16px;">
         <label>Product Line Impacted</label>
-        <input type="text" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="e.g., All" value="${state.productLine||'All'}" oninput="state.productLine=this.value;render();"/>
+        <input type="text" id="productLineInput" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);" placeholder="e.g., All" value="${state.productLine||'All'}" oninput="state.productLine=this.value;"/>
       </div>
       <div class="meta-grid">
         <div class="meta-col"><div class="meta-col-label"><span class="dot" style="background:var(--accent)"></span>Pricing</div><div class="chk-list">${PRICING_OPTIONS.map(o=>`<div class="chk-row" data-grp="pricing" data-val="${o}"><div class="chk-box ${state.pricingChecks.includes(o)?'on':''}"></div><span>${o}</span></div>`).join('')}</div></div>
@@ -957,7 +929,7 @@ function renderReview(){
   </div>
   <div class="card"><div class="card-head"><h3>📄 PDF Page 1 — Cost Approval Form</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage1()}</div></div>
   <div class="card"><div class="card-head"><h3>📄 PDF Page 2 — Annexure (Full Table)</h3><span class="badge badge-green">Live</span></div><div class="card-body">${renderPDFPage2()}</div></div>
-  <div class="flex-end mt"><button class="btn btn-ghost" onclick="downloadPDF()" style="margin-right:10px;">📥 Download PDF</button><button class="btn btn-primary" onclick="if((state.detailsOfChange||'').length<6){showToast('❌ Details of Change: Min 6 characters');return;}state.page='signers';render()">Continue → Signatories</button></div>`;
+  <div class="flex-end mt"><button class="btn btn-ghost" onclick="if(confirm('Start a new form? Current form data will be cleared.'))resetAll()" style="margin-right:auto;color:var(--text-xs);">🔄 Start new form</button><button class="btn btn-ghost" onclick="downloadPDF()" style="margin-right:10px;">📥 Download PDF</button><button class="btn btn-primary" onclick="if((state.detailsOfChange||'').length<6){showToast('❌ Details of Change: Min 6 characters');return;}state.page='signers';render()">Continue → Signatories</button></div>`;
 }
 
 // ═══ PDF PAGE 1 ─── TKE top, 2 rows only, signatures, INR bottom ═══
@@ -975,7 +947,7 @@ function renderPDFPage1(){
   return `
   <div class="pdf-page">
     <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Cost Approval Form</h2><div style="width:30px"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:var(--text);margin-bottom:7px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:var(--text);margin-bottom:7px"><span>Form No.: <b>${state.formNumber||'—'}</b></span><span>Date: <b>${state.date}</b></span></div>
     <div class="pdf-row"><b>Initiated By</b><span>Name: ${cb.name||'—'} &nbsp;|&nbsp; Category: ${state.category.charAt(0)+state.category.slice(1).toLowerCase()} &nbsp;|&nbsp; Dept: PSM</span></div>
     <div class="pdf-section-title">Reason of Change</div>
     <div class="pdf-reasons">
@@ -1008,7 +980,7 @@ function renderPDFPage2(){
   return `
   <div class="pdf-page">
     <div class="pdf-header"><img src="${TKE_LOGO}" alt="TKE"/><h2>Annexure — Item Price Details</h2><div style="width:30px"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:var(--text);margin-bottom:6px"><span>Form No.: <b>${state.formNumber||state.formNo}</b></span><span>Date: <b>${state.date}</b></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.71rem;color:var(--text);margin-bottom:6px"><span>Form No.: <b>${state.formNumber||'—'}</b></span><span>Date: <b>${state.date}</b></span></div>
     <div class="pdf-row"><b>Vendor Code</b><span>${state.items[0]?.vendor_code}</span></div>
     <div class="pdf-row"><b>Vendor Name</b><span>${state.items[0]?.vendor_name}</span></div>
     <table class="pdf-tbl" style="margin-top:10px"><thead><tr><th>#</th><th>FS Item Code</th><th>Item Code</th><th style="min-width:150px">Description</th><th>New Price</th><th>Old Price</th><th>Price Diff</th><th>% Diff</th><th>Yearly Vol</th><th>Cost Impact</th></tr></thead><tbody>
@@ -1150,16 +1122,16 @@ function renderSend(){
 }
 
 function renderDone(){
-  const fullPath=(state.onedrivePath||'//')+(state.saveTo==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+state.formNo+'.pdf';
+  const fullPath=(state.onedrivePath||'//')+(state.saveTo==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+(state.formNumber||'unsaved')+'.pdf';
   return `
   <div style="text-align:center;padding:60px 20px;">
     <div style="font-size:4rem;margin-bottom:16px">✅</div>
     <h2 style="color:#fff;font-size:1.5rem;margin-bottom:8px">Approval Complete!</h2>
-    <p style="color:var(--text);max-width:480px;margin:0 auto 24px">Form No. <strong style="color:var(--accent)">${state.formNo}</strong> signed &amp; saved.</p>
+    <p style="color:var(--text);max-width:480px;margin:0 auto 24px">Form No. <strong style="color:var(--accent)">${state.formNumber||'—'}</strong> signed &amp; saved.</p>
     <div class="card" style="max-width:520px;margin:0 auto 20px;text-align:left;">
       <div class="card-head"><h3>📋 Summary</h3></div>
       <div class="card-body">
-        <div class="pdf-row"><b>Form No.</b><span>${state.formNo}</span></div>
+        <div class="pdf-row"><b>Form No.</b><span>${state.formNumber||'—'}</span></div>
         <div class="pdf-row"><b>Vendor</b><span>${state.vendor} (${state.vendorCode})</span></div>
         <div class="pdf-row"><b>Category</b><span>${state.category.charAt(0)+state.category.slice(1).toLowerCase()}</span></div>
         <div class="pdf-row"><b>Items</b><span>${state.items.length}</span></div>
@@ -1168,7 +1140,10 @@ function renderDone(){
         <div class="pdf-row"><b>Signatories</b><span>${state.signers.map(s=>s.name).join(', ')}</span></div>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="resetAll()">🔄 New Approval</button>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="resetAll()">🔄 Start New Approval</button>
+      <button class="btn btn-ghost" onclick="state.page='forms-list';render();loadMyForms()">📋 View Forms Created</button>
+    </div>
   </div>`;
 }
 
@@ -1181,7 +1156,7 @@ function renderModal(){
     return `<div class="modal-back" onclick="state.modal=null;render()"><div class="modal" onclick="event.stopPropagation()" style="max-width:620px;"><h3>✍️ Draw Signature</h3><p>Sign below for <strong style="color:var(--accent)">${sName}</strong>. Saved once — reuse with 1 click.</p><div class="sig-pad-wrap"><canvas id="sigCanvas" style="width:100%;height:160px;"></canvas><div class="sig-pad-toolbar"><button class="btn btn-ghost btn-sm" id="clearPadBtn">🗑️ Clear</button><span class="dim" style="flex:1;text-align:center">Draw with mouse or finger</span><button class="btn btn-green btn-sm" id="savePadBtn">✓ Save Signature</button></div></div><div class="modal-actions"><button class="btn btn-ghost" onclick="state.modal=null;render()">Cancel</button></div></div></div>`;
   }
   if(m.type==='save'){
-    const fp=(state.onedrivePath||'//')+(m.folder==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+state.formNo+'.pdf';
+    const fp=(state.onedrivePath||'//')+(m.folder==='quarterly'?'Quarterly Cost Approvals/':'Ad Hoc Approvals/')+'Form_'+(state.formNumber||'unsaved')+'.pdf';
     return `<div class="modal-back" onclick="state.modal=null;render()"><div class="modal" onclick="event.stopPropagation()"><h3>💾 Save Confirmation</h3><p>PDF will be saved to:<br><strong style="color:var(--accent)">${fp}</strong></p><div class="modal-actions"><button class="btn btn-ghost" onclick="state.modal=null;render()">Cancel</button><button class="btn btn-green" id="confirmSave">Confirm Save</button></div></div></div>`;
   }
   return '';
@@ -1238,7 +1213,7 @@ function bindEvents(){
   
   // save PDF
   const spBtn=document.getElementById('savePDFBtn');if(spBtn)spBtn.onclick=()=>{const folder=document.getElementById('saveFolderSelect').value;if(!folder){showToast('Pick a folder');return;}state.modal={type:'save',folder};render();};
-  const cs=document.getElementById('confirmSave');if(cs)cs.onclick=()=>{state.saveTo=state.modal.folder;state.modal=null;showToast('PDF saved ✓');state.formNo++;setTimeout(()=>{state.page='done';render();},1200);};
+  const cs=document.getElementById('confirmSave');if(cs)cs.onclick=()=>{state.saveTo=state.modal.folder;state.modal=null;showToast('PDF saved ✓');setTimeout(()=>{state.page='done';render();},1200);};
 }
 
 function handleFile(file){if(file.name.endsWith('.csv')){const r=new FileReader();r.onload=(e)=>parseCSV(e.target.result);r.readAsText(file);}else parseExcel(file);}
@@ -1254,9 +1229,34 @@ function loadSample(){
 }
 
 function resetAll(){
-  state.page='upload';state.items=[];state.saveTo='';
+  // Clean transition to a new form: clear everything tied to the previous form,
+  // but preserve auth session, signer defaults, signatures, and FX rates.
+  state.formNumber = null;
+  state.items = [];
+  state.saveTo = '';
+  state.vendor = '';
+  state.vendorCode = '';
+  state.detailsOfChange = '';
+  state.productLine = 'All';
+  state.category = 'ELECTRICAL';
+  state.pricingChecks = [];
+  state.qualityChecks = [];
+  state.partTypeChecks = ['New Part'];
+  state.date = new Date().toISOString().split('T')[0];
   state.signers.forEach(s=>{s.status=(s===state.signers[0]?'pending':'waiting');});
-  applyCategoryToSigners();render();
+  // Re-prefill Prepared By from logged-in user (in case the slot was edited)
+  if (state.authUser && state.signers[0]) {
+    state.signers[0].name = state.authUser.name;
+    state.signers[0].email = state.authUser.email;
+  }
+  // Clear the Checked By slot so it's blank for the next form
+  if (state.signers[1] && state.signers[1].role === 'Checked By') {
+    state.signers[1].name = '';
+    state.signers[1].email = '';
+  }
+  state.page = 'upload';
+  applyCategoryToSigners();
+  render();
 }
 
 boot();
@@ -1431,7 +1431,7 @@ async function downloadPDF(){
     const cb=getCheckedBy();
     pdf.setPage(1);
     pdf.setFontSize(1);pdf.setTextColor(255,255,255);
-    const p1=['Form No.: '+(state.formNumber||state.formNo),'Date: '+state.date,
+    const p1=['Form No.: '+(state.formNumber||'—'),'Date: '+state.date,
       'Initiated By Name: '+(cb.name||'')+' | Category: '+state.category+' | Dept: PSM',
       'Supplier '+(items[0]?.vendor_code||'')+' --- '+(items[0]?.vendor_name||''),
       'Details of Change '+(state.detailsOfChange||'NEW ITEMS'),
@@ -1441,7 +1441,7 @@ async function downloadPDF(){
     pdf.text(p1.join('\n'),1,1);
     if(pdf.getNumberOfPages()>=2){
       pdf.setPage(2);pdf.setFontSize(1);pdf.setTextColor(255,255,255);
-      const p2=['Annexure --- Item Price Details','Form No.: '+(state.formNumber||state.formNo),'Date: '+state.date,
+      const p2=['Annexure --- Item Price Details','Form No.: '+(state.formNumber||'—'),'Date: '+state.date,
         'Vendor Code '+(items[0]?.vendor_code||''),'Vendor Name '+(items[0]?.vendor_name||'')];
       items.forEach((it,i)=>{p2.push((i+1)+' '+(it.item_code||'')+' '+(it.item_code||'')+' '+(it.item_description||'')+' '+(it.new_price||it.newPrice||0)+' '+(it.old_price||it.oldPrice||0)+' '+(it.price_diff||it.priceDiff||0)+' '+(it.percent_diff||it.pctDiff||0)+'% '+(it.porv_qty||0)+' '+(it.impact||it.costImpact||0))});
       p2.push('Avg % Price Diff: '+t.avgPctDiff,'Total Yearly Vol: '+t.totalVol,'Total Yearly Impact (INR): '+t.totalImpact,'Total Quarterly Impact (INR): '+t.quarterlyImpact);
@@ -1449,9 +1449,9 @@ async function downloadPDF(){
     }
   }catch(e){console.warn('Text layer skipped:',e.message)}
   
-  pdf.save('Form_'+state.formNumber+'.pdf');
+  pdf.save('Form_'+(state.formNumber||'unsaved')+'.pdf');
   showToast('✅ PDF downloaded');
-  fetch(API_URL+'/api/forms/'+state.formNumber+'/downloaded',{method:'POST'}).catch(e=>0);
+  authedFetch('/api/forms/'+encodeURIComponent(state.formNumber)+'/downloaded',{method:'POST'}).catch(()=>{});
 }
 </script>
 </body>
