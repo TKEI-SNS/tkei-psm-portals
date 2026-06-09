@@ -498,6 +498,13 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
     return;
   }
 
+  // ─── Reference Data status view ───
+  if (state.page === 'reference-data') {
+    app.innerHTML = renderReferenceData();
+    bindReferenceDataEvents();
+    return;
+  }
+
   const navItems=[{id:'setup',label:'Setup',icon:'⚙️'},{id:'upload',label:'Upload',icon:'📂'},{id:'review',label:'Review & Preview',icon:'👁'},{id:'signers',label:'Signatories',icon:'✍'},{id:'send',label:'Send Envelope',icon:'📤'},{id:'done',label:'Complete',icon:'✅'}];
   const order=['setup','upload','review','signers','send','done'];
   const curIdx=order.indexOf(state.page);
@@ -512,6 +519,9 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
       </div>`).join('')}
       <div class="nav-item" data-nav="forms-list" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
         <span style="font-size:.9rem">📋</span><span>My Forms</span>
+      </div>
+      <div class="nav-item" data-nav="reference-data">
+        <span style="font-size:.9rem">🗂️</span><span>Reference Data</span>
       </div>
     </nav>
   </div>
@@ -532,6 +542,10 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
     const id=el.dataset.nav;
     if (id === 'forms-list') {
       el.onclick = () => { state.page='forms-list'; render(); loadMyForms(); };
+      return;
+    }
+    if (id === 'reference-data') {
+      el.onclick = () => { state.page='reference-data'; render(); loadReferenceStatus(); };
       return;
     }
     if(order.indexOf(id)<=curIdx) el.onclick=()=>{state.page=id;render();};
@@ -750,6 +764,193 @@ function bindFormsListEvents(){
     try { await sb.auth.signOut(); } catch(_) {}
     applySession(null); state.page='login'; state.authMode='signin'; render();
   };
+}
+
+// ═══════ REFERENCE DATA STATUS ═══════
+// Read-only panel that tells the user how fresh the two SAP reference tables
+// are (Info Records → Old Price; PORV → Quantities). Cost calculations on the
+// Review screen depend on these. Upload is still done via Supabase dashboard
+// because the files are too large (300K-500K+ rows) to push through Render.
+state.refData = state.refData || { loading:false, status:null, error:null };
+
+async function loadReferenceStatus(){
+  state.refData.loading = true; state.refData.error = null; render();
+  try {
+    const res = await authedFetch('/api/reference-data/status');
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || ('HTTP '+res.status));
+    state.refData.status = json;
+  } catch (e) {
+    state.refData.error = e.message;
+    state.refData.status = null;
+  } finally {
+    state.refData.loading = false; render();
+  }
+}
+
+function refDataAgeBadge(rowCount, latest){
+  if (rowCount == null) return '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.35);">Not reachable</span>';
+  if (rowCount === 0)   return '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.35);">Empty</span>';
+  if (!latest)          return '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.35);">Loaded · age unknown</span>';
+  const ageDays = Math.floor((Date.now() - new Date(latest).getTime()) / 86400000);
+  if (isNaN(ageDays))   return '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.35);">Loaded · age unknown</span>';
+  if (ageDays < 35)     return '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.35);">Fresh · '+ageDays+'d</span>';
+  if (ageDays < 95)     return '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.35);">Aging · '+ageDays+'d</span>';
+  return                       '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.35);">Stale · '+ageDays+'d</span>';
+}
+
+function renderReferenceData(){
+  const s = state.refData.status;
+  const ir = s?.info_records || {};
+  const pv = s?.porv_data || {};
+  return `
+  <div class="sidebar">
+    <div class="sidebar-brand" style="cursor:pointer;" onclick="state.page='setup';render()"><img src="${TKE_LOGO}" alt="TKE"/><div><h1>CostApproval</h1><span>Admin Portal</span></div></div>
+    <nav>
+      <div class="nav-item" onclick="state.page='setup';render()">
+        <span style="font-size:.9rem">⚙️</span><span>← Back to portal</span>
+      </div>
+      <div class="nav-item active" style="margin-top:14px;">
+        <span style="font-size:.9rem">🗂️</span><span>Reference Data</span>
+      </div>
+    </nav>
+  </div>
+  <div class="main" style="display:flex;flex-direction:column;min-height:100vh;">
+    <div class="topbar">
+      <div class="topbar-left"><h2>Reference Data</h2><span>SAP source tables that power price &amp; quantity lookups</span></div>
+      <div class="topbar-right">
+        ${state.authUser?'<span class="dim" style="font-size:.85rem;">'+state.authUser.name+'</span>':''}
+        <button id="refRefreshBtn" class="btn btn-ghost btn-sm" style="font-size:.78rem;padding:5px 12px;">Refresh status</button>
+      </div>
+    </div>
+    <div class="content" style="padding:24px;">
+
+      ${state.refData.error
+        ? '<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:12px 16px;border-radius:8px;font-size:.86rem;margin-bottom:18px;">Could not reach the backend: '+state.refData.error+'</div>'
+        : ''}
+
+      <!-- STATUS CARDS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;">
+        <div class="card">
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+              <div>
+                <h3 style="font-size:1rem;margin-bottom:2px;">Info Records</h3>
+                <p style="font-size:.78rem;color:var(--muted);margin:0;">Old-price lookup per item × vendor</p>
+              </div>
+              ${refDataAgeBadge(ir.count, ir.latest)}
+            </div>
+            <div style="display:flex;gap:24px;align-items:baseline;border-top:1px solid var(--border);padding-top:12px;">
+              <div>
+                <div style="font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums;">${state.refData.loading?'…':(ir.count!=null?ir.count.toLocaleString('en-IN'):'—')}</div>
+                <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Rows</div>
+              </div>
+              <div>
+                <div style="font-size:.95rem;">${ir.latest||'—'}</div>
+                <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Latest "Valid to"</div>
+              </div>
+            </div>
+            <div style="font-family:monospace;font-size:.72rem;color:var(--muted);margin-top:10px;">table: info_records_csv</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+              <div>
+                <h3 style="font-size:1rem;margin-bottom:2px;">PORV Data</h3>
+                <p style="font-size:.78rem;color:var(--muted);margin:0;">Quantity (PORV) per item × vendor for impact calc</p>
+              </div>
+              ${refDataAgeBadge(pv.count, null)}
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;">
+              <div style="font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums;">${state.refData.loading?'…':(pv.count!=null?pv.count.toLocaleString('en-IN'):'—')}</div>
+              <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Rows</div>
+            </div>
+            <div style="font-family:monospace;font-size:.72rem;color:var(--muted);margin-top:10px;">table: porv_data_csv</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHY THIS MATTERS -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:8px;">Why this matters</h3>
+          <p style="font-size:.86rem;color:var(--text);line-height:1.6;margin:0;">
+            Every time you upload an Excel of new prices on the Review screen, the portal looks up the <strong>old price</strong> in Info Records and the <strong>order quantity (PORV)</strong> in PORV Data. Both must be reasonably current or the cost-impact figures will be wrong. <strong>Aim to refresh both tables monthly</strong> right after SAP exports are available.
+          </p>
+        </div>
+      </div>
+
+      <!-- HOW TO REFRESH -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h3 style="font-size:1rem;margin:0;">How to refresh (≈ 5 min)</h3>
+            <span style="font-size:.72rem;color:var(--muted);">via Supabase dashboard · file size is too large for in-portal upload</span>
+          </div>
+          <ol style="padding-left:20px;font-size:.86rem;line-height:1.75;margin:0;color:var(--text);">
+            <li>Export the latest <strong>Info Records</strong> and <strong>PORV</strong> reports from SAP as <code style="font-family:monospace;background:var(--surface);padding:1px 6px;border-radius:3px;font-size:.82rem;">.csv</code> (UTF-8, comma-separated).</li>
+            <li>Open the <a href="https://supabase.com/dashboard" target="_blank" rel="noopener" style="color:var(--accent);">Supabase dashboard</a> → your project → <strong>Table Editor</strong>.</li>
+            <li>Open the table to refresh — <code style="font-family:monospace;background:var(--surface);padding:1px 6px;border-radius:3px;font-size:.82rem;">info_records_csv</code> or <code style="font-family:monospace;background:var(--surface);padding:1px 6px;border-radius:3px;font-size:.82rem;">porv_data_csv</code>.</li>
+            <li>Click <strong>Insert</strong> → <strong>Import data from CSV</strong>. Drop the file, confirm column mappings (must match exactly — see below), import.</li>
+            <li>Wait for the import (300K rows ≈ 60 s, 500K rows ≈ 90 s). Come back here and click <strong>Refresh status</strong>. Row count + freshness badge should update.</li>
+            <li>Go to <strong>Setup → Upload</strong> with a recent cost-approval Excel to confirm Old Price and PORV columns populate.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- COLUMN CONTRACT -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;">
+        <div class="card">
+          <div class="card-body">
+            <h3 style="font-size:.95rem;margin-bottom:8px;">info_records_csv — required columns</h3>
+            <ul style="list-style:none;padding:0;margin:0;font-size:.82rem;line-height:1.7;">
+              <li><code style="font-family:monospace;color:var(--accent);">Material Number</code> — item code</li>
+              <li><code style="font-family:monospace;color:var(--accent);">Vendor's account number</code> — vendor code</li>
+              <li><code style="font-family:monospace;color:var(--accent);">Amount</code> — old price (numeric, no commas)</li>
+              <li><code style="font-family:monospace;color:var(--accent);">Valid to</code> — date the price was valid until</li>
+              <li><code style="font-family:monospace;color:var(--accent);">Supplier</code> — vendor name</li>
+              <li><code style="font-family:monospace;color:var(--accent);">item_vendor_key</code> — generated, format <code style="font-family:monospace;font-size:.78rem;">Material-Vendor</code></li>
+            </ul>
+            <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">Column names must match exactly, including capitalisation and the apostrophe in "Vendor's".</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <h3 style="font-size:.95rem;margin-bottom:8px;">porv_data_csv — required columns</h3>
+            <ul style="list-style:none;padding:0;margin:0;font-size:.82rem;line-height:1.7;">
+              <li><code style="font-family:monospace;color:var(--accent);">Material</code> — item code</li>
+              <li><code style="font-family:monospace;color:var(--accent);">Vendor</code> — vendor code</li>
+              <li><code style="font-family:monospace;color:var(--accent);">Qty in unit of entry</code> — quantity (numeric)</li>
+              <li><code style="font-family:monospace;color:var(--accent);">item_vendor_key</code> — generated, format <code style="font-family:monospace;font-size:.78rem;">Material-Vendor</code></li>
+            </ul>
+            <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">Multiple rows per item-vendor are summed automatically by the calculation engine (Excel SUMIF equivalent).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIPS -->
+      <div class="card">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:8px;">Tips &amp; troubleshooting</h3>
+          <ul style="list-style:disc;padding-left:22px;font-size:.84rem;line-height:1.75;margin:0;color:var(--text);">
+            <li>If row count stays at zero after import, check the Supabase import log for column mismatch — the column names are case-sensitive.</li>
+            <li>If items show <strong>"New Item"</strong> remarks during cost approval, the item-vendor combination wasn't found in Info Records. That can be correct (genuinely new) or it can mean the data is stale.</li>
+            <li>Don't delete the old rows before importing the new ones — let the import upsert by primary key. Wiping the table loses history that other RPCs depend on.</li>
+            <li>If you must wipe and reload, do it off-hours — the system is briefly unable to look up old prices during that window.</li>
+            <li>Files larger than ~100 MB may need to be uploaded via the Supabase CLI rather than the dashboard. Ask the developer.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function bindReferenceDataEvents(){
+  const r = document.getElementById('refRefreshBtn');
+  if (r) r.onclick = loadReferenceStatus;
 }
 
 function renderPage(){return{setup:renderSetup,upload:renderUpload,review:renderReview,signers:renderSigners,send:renderSend,tracker:renderTracker,done:renderDone}[state.page]();}
