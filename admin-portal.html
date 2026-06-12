@@ -517,10 +517,7 @@ function render(){const v=(x)=>x==null||x===undefined?'':x;
         <span style="font-size:.9rem">${n.icon}</span><span>${i+1}. ${n.label}</span>
         ${n.id==='sign'&&state.signers.some(s=>s.status==='pending')&&state.page!=='sign'?'<span class="nav-badge">!</span>':''}
       </div>`).join('')}
-      <div class="nav-item" data-nav="forms-list" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
-        <span style="font-size:.9rem">📋</span><span>My Forms</span>
-      </div>
-      <div class="nav-item" data-nav="reference-data">
+      <div class="nav-item" data-nav="reference-data" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
         <span style="font-size:.9rem">🗂️</span><span>Reference Data</span>
       </div>
     </nav>
@@ -799,10 +796,66 @@ function refDataAgeBadge(rowCount, latest){
   return                       '<span style="font-size:.72rem;padding:3px 9px;border-radius:10px;background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.35);">Stale · '+ageDays+'d</span>';
 }
 
+<!-- __REFDATA_MARKER__ -->
 function renderReferenceData(){
-  const s = state.refData.status;
+  const s  = state.refData.status;
   const ir = s?.info_records || {};
   const pv = s?.porv_data || {};
+  const li = ir.last_import, lp = pv.last_import;
+  const fmtDate = (iso) => {
+    if (!iso) return null;
+    try { return new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(_) { return iso; }
+  };
+  const card = (opts) => `
+    <div class="card">
+      <div class="card-body" style="padding:18px 20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px;">
+          <div>
+            <h3 style="font-size:.95rem;font-weight:600;margin-bottom:2px;letter-spacing:-.005em;">${opts.title}</h3>
+            <div style="font-family:monospace;font-size:.7rem;color:var(--muted);">${opts.tableName}</div>
+          </div>
+          ${refDataAgeBadge(opts.count, opts.latest)}
+        </div>
+
+        <div style="display:flex;gap:28px;align-items:baseline;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:1.55rem;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;">
+              ${state.refData.loading?'…':(opts.count!=null?opts.count.toLocaleString('en-IN'):'—')}
+            </div>
+            <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Rows</div>
+          </div>
+          ${opts.latest ? `
+          <div>
+            <div style="font-size:.92rem;font-weight:500;">${opts.latest}</div>
+            <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Latest "Valid to"</div>
+          </div>` : ''}
+        </div>
+
+        <div style="padding-top:12px;font-size:.78rem;color:var(--text);min-height:32px;">
+          ${opts.lastImport
+            ? `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+                 <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">
+                   <span style="color:var(--muted);">Last import:</span>
+                   <span style="font-family:monospace;color:var(--accent);" title="${opts.lastImport.filename}">${opts.lastImport.filename}</span>
+                 </div>
+                 <div style="color:var(--muted);font-size:.72rem;white-space:nowrap;">${fmtDate(opts.lastImport.imported_at) || ''}</div>
+               </div>`
+            : `<span style="color:var(--muted);font-style:italic;">No import logged yet</span>`
+          }
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+          <button data-log-import="${opts.tableName}" data-label="${opts.title}"
+            style="background:transparent;color:var(--text);border:1px solid var(--border);padding:5px 11px;border-radius:6px;font-size:.74rem;cursor:pointer;font-weight:500;">
+            Log import
+          </button>
+          <button data-wipe="${opts.tableName}" data-label="${opts.title}"
+            style="background:transparent;color:#dc2626;border:1px solid rgba(220,38,38,.45);padding:5px 11px;border-radius:6px;font-size:.74rem;cursor:pointer;font-weight:500;">
+            ⚠ Wipe
+          </button>
+        </div>
+      </div>
+    </div>`;
   return `
   <div class="sidebar">
     <div class="sidebar-brand" style="cursor:pointer;" onclick="state.page='setup';render()"><img src="${TKE_LOGO}" alt="TKE"/><div><h1>CostApproval</h1><span>Admin Portal</span></div></div>
@@ -817,130 +870,70 @@ function renderReferenceData(){
   </div>
   <div class="main" style="display:flex;flex-direction:column;min-height:100vh;">
     <div class="topbar">
-      <div class="topbar-left"><h2>Reference Data</h2><span>SAP source tables that power price &amp; quantity lookups</span></div>
+      <div class="topbar-left"><h2>Reference Data</h2><span>SAP price &amp; quantity sources</span></div>
       <div class="topbar-right">
         ${state.authUser?'<span class="dim" style="font-size:.85rem;">'+state.authUser.name+'</span>':''}
-        <button id="refRefreshBtn" class="btn btn-ghost btn-sm" style="font-size:.78rem;padding:5px 12px;">Refresh status</button>
+        <button id="refRefreshBtn" class="btn btn-ghost btn-sm" style="font-size:.78rem;padding:5px 12px;">↻ Refresh</button>
       </div>
     </div>
-    <div class="content" style="padding:24px;">
+    <div class="content" style="padding:24px;max-width:1100px;">
 
       ${state.refData.error
-        ? '<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:12px 16px;border-radius:8px;font-size:.86rem;margin-bottom:18px;">Could not reach the backend: '+state.refData.error+'</div>'
+        ? '<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:10px 14px;border-radius:6px;font-size:.82rem;margin-bottom:18px;">Backend unreachable: '+state.refData.error+'</div>'
         : ''}
 
       <!-- STATUS CARDS -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;">
-        <div class="card">
-          <div class="card-body">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-              <div>
-                <h3 style="font-size:1rem;margin-bottom:2px;">Info Records</h3>
-                <p style="font-size:.78rem;color:var(--muted);margin:0;">Old-price lookup per item × vendor</p>
-              </div>
-              ${refDataAgeBadge(ir.count, ir.latest)}
-            </div>
-            <div style="display:flex;gap:24px;align-items:baseline;border-top:1px solid var(--border);padding-top:12px;">
-              <div>
-                <div style="font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums;">${state.refData.loading?'…':(ir.count!=null?ir.count.toLocaleString('en-IN'):'—')}</div>
-                <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Rows</div>
-              </div>
-              <div>
-                <div style="font-size:.95rem;">${ir.latest||'—'}</div>
-                <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Latest "Valid to"</div>
-              </div>
-            </div>
-            <div style="font-family:monospace;font-size:.72rem;color:var(--muted);margin-top:10px;">table: info_records_csv</div>
-          </div>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;">
+        ${card({title:'Info Records', tableName:'info_records_csv', count:ir.count, latest:ir.latest, lastImport:li})}
+        ${card({title:'PORV Data',    tableName:'porv_data_csv',    count:pv.count, latest:null,      lastImport:lp})}
+      </div>
 
-        <div class="card">
-          <div class="card-body">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-              <div>
-                <h3 style="font-size:1rem;margin-bottom:2px;">PORV Data</h3>
-                <p style="font-size:.78rem;color:var(--muted);margin:0;">Quantity (PORV) per item × vendor for impact calc</p>
-              </div>
-              ${refDataAgeBadge(pv.count, null)}
-            </div>
-            <div style="border-top:1px solid var(--border);padding-top:12px;">
-              <div style="font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums;">${state.refData.loading?'…':(pv.count!=null?pv.count.toLocaleString('en-IN'):'—')}</div>
-              <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Rows</div>
-            </div>
-            <div style="font-family:monospace;font-size:.72rem;color:var(--muted);margin-top:10px;">table: porv_data_csv</div>
+      <!-- QUICK REFRESH FLOW -->
+      <div class="card" style="margin-bottom:22px;">
+        <div class="card-body" style="padding:16px 20px;">
+          <h3 style="font-size:.92rem;margin:0 0 10px;letter-spacing:-.005em;">Refresh a table</h3>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.82rem;color:var(--text);line-height:1.55;">
+            <span style="color:var(--muted);font-variant-numeric:tabular-nums;">1.</span><span><b>Wipe</b> the table here (typed confirmation required).</span>
+            <span style="color:var(--muted);font-variant-numeric:tabular-nums;">2.</span><span>Open <a href="https://supabase.com/dashboard" target="_blank" rel="noopener" style="color:var(--accent);">Supabase</a> → Table Editor → <b>Insert → Import data from CSV</b>.</span>
+            <span style="color:var(--muted);font-variant-numeric:tabular-nums;">3.</span><span>Come back, click <b>Log import</b> on the card, enter the CSV filename.</span>
+            <span style="color:var(--muted);font-variant-numeric:tabular-nums;">4.</span><span>Click <b>Refresh</b> — the new row count should appear.</span>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:.74rem;color:var(--muted);">
+            Info Records → quarterly. PORV → yearly. Aim to keep both Fresh (&lt; 35 d).
           </div>
         </div>
       </div>
 
-      <!-- WHY THIS MATTERS -->
-      <div class="card" style="margin-bottom:24px;">
-        <div class="card-body">
-          <h3 style="font-size:1rem;margin-bottom:8px;">Why this matters</h3>
-          <p style="font-size:.86rem;color:var(--text);line-height:1.6;margin:0;">
-            Every time you upload an Excel of new prices on the Review screen, the portal looks up the <strong>old price</strong> in Info Records and the <strong>order quantity (PORV)</strong> in PORV Data. Both must be reasonably current or the cost-impact figures will be wrong. <strong>Aim to refresh both tables monthly</strong> right after SAP exports are available.
-          </p>
-        </div>
-      </div>
-
-      <!-- HOW TO REFRESH -->
-      <div class="card" style="margin-bottom:24px;">
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-            <h3 style="font-size:1rem;margin:0;">How to refresh (≈ 5 min)</h3>
-            <span style="font-size:.72rem;color:var(--muted);">via Supabase dashboard · file size is too large for in-portal upload</span>
-          </div>
-          <ol style="padding-left:20px;font-size:.86rem;line-height:1.75;margin:0;color:var(--text);">
-            <li>Export the latest <strong>Info Records</strong> and <strong>PORV</strong> reports from SAP as <code style="font-family:monospace;background:var(--surface);padding:1px 6px;border-radius:3px;font-size:.82rem;">.csv</code> (UTF-8, comma-separated).</li>
-            <li>Open the <a href="https://supabase.com/dashboard" target="_blank" rel="noopener" style="color:var(--accent);">Supabase dashboard</a> → your project → <strong>Table Editor</strong>.</li>
-            <li>Open the table to refresh — <code style="font-family:monospace;background:var(--surface);padding:1px 6px;border-radius:3px;font-size:.82rem;">info_records_csv</code> or <code style="font-family:monospace;background:var(--surface);padding:1px 6px;border-radius:3px;font-size:.82rem;">porv_data_csv</code>.</li>
-            <li>Click <strong>Insert</strong> → <strong>Import data from CSV</strong>. Drop the file, confirm column mappings (must match exactly — see below), import.</li>
-            <li>Wait for the import (300K rows ≈ 60 s, 500K rows ≈ 90 s). Come back here and click <strong>Refresh status</strong>. Row count + freshness badge should update.</li>
-            <li>Go to <strong>Setup → Upload</strong> with a recent cost-approval Excel to confirm Old Price and PORV columns populate.</li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- COLUMN CONTRACT -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;">
+      <!-- COLUMN CONTRACTS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div class="card">
-          <div class="card-body">
-            <h3 style="font-size:.95rem;margin-bottom:8px;">info_records_csv — required columns</h3>
-            <ul style="list-style:none;padding:0;margin:0;font-size:.82rem;line-height:1.7;">
-              <li><code style="font-family:monospace;color:var(--accent);">Material Number</code> — item code</li>
-              <li><code style="font-family:monospace;color:var(--accent);">Vendor's account number</code> — vendor code</li>
-              <li><code style="font-family:monospace;color:var(--accent);">Amount</code> — old price (numeric, no commas)</li>
-              <li><code style="font-family:monospace;color:var(--accent);">Valid to</code> — date the price was valid until</li>
-              <li><code style="font-family:monospace;color:var(--accent);">Supplier</code> — vendor name</li>
-              <li><code style="font-family:monospace;color:var(--accent);">item_vendor_key</code> — generated, format <code style="font-family:monospace;font-size:.78rem;">Material-Vendor</code></li>
+          <div class="card-body" style="padding:16px 20px;">
+            <h3 style="font-size:.88rem;margin:0 0 10px;font-weight:600;">info_records_csv</h3>
+            <div style="font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Required columns</div>
+            <ul style="list-style:none;padding:0;margin:0;font-size:.8rem;line-height:1.65;font-family:monospace;">
+              <li style="color:var(--accent);">"Material Number"</li>
+              <li style="color:var(--accent);">"Vendor's account number"</li>
+              <li style="color:var(--accent);">"Amount"</li>
+              <li style="color:var(--accent);">"Valid to"</li>
+              <li style="color:var(--accent);">"Supplier"</li>
+              <li style="color:var(--muted);">item_vendor_key <span style="font-family:var(--f);color:var(--muted);font-style:italic;">(auto-filled by trigger)</span></li>
             </ul>
-            <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">Column names must match exactly, including capitalisation and the apostrophe in "Vendor's".</p>
           </div>
         </div>
         <div class="card">
-          <div class="card-body">
-            <h3 style="font-size:.95rem;margin-bottom:8px;">porv_data_csv — required columns</h3>
-            <ul style="list-style:none;padding:0;margin:0;font-size:.82rem;line-height:1.7;">
-              <li><code style="font-family:monospace;color:var(--accent);">Material</code> — item code</li>
-              <li><code style="font-family:monospace;color:var(--accent);">Vendor</code> — vendor code</li>
-              <li><code style="font-family:monospace;color:var(--accent);">Qty in unit of entry</code> — quantity (numeric)</li>
-              <li><code style="font-family:monospace;color:var(--accent);">item_vendor_key</code> — generated, format <code style="font-family:monospace;font-size:.78rem;">Material-Vendor</code></li>
+          <div class="card-body" style="padding:16px 20px;">
+            <h3 style="font-size:.88rem;margin:0 0 10px;font-weight:600;">porv_data_csv</h3>
+            <div style="font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Required columns</div>
+            <ul style="list-style:none;padding:0;margin:0;font-size:.8rem;line-height:1.65;font-family:monospace;">
+              <li style="color:var(--accent);">"Material"</li>
+              <li style="color:var(--accent);">"Vendor"</li>
+              <li style="color:var(--accent);">"Qty in unit of entry"</li>
+              <li style="color:var(--muted);">item_vendor_key <span style="font-family:var(--f);color:var(--muted);font-style:italic;">(auto-filled by trigger)</span></li>
             </ul>
-            <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">Multiple rows per item-vendor are summed automatically by the calculation engine (Excel SUMIF equivalent).</p>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:.72rem;color:var(--muted);line-height:1.5;">
+              Multiple rows per item-vendor are summed (Excel SUMIF equivalent).
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- TIPS -->
-      <div class="card">
-        <div class="card-body">
-          <h3 style="font-size:1rem;margin-bottom:8px;">Tips &amp; troubleshooting</h3>
-          <ul style="list-style:disc;padding-left:22px;font-size:.84rem;line-height:1.75;margin:0;color:var(--text);">
-            <li>If row count stays at zero after import, check the Supabase import log for column mismatch — the column names are case-sensitive.</li>
-            <li>If items show <strong>"New Item"</strong> remarks during cost approval, the item-vendor combination wasn't found in Info Records. That can be correct (genuinely new) or it can mean the data is stale.</li>
-            <li>Don't delete the old rows before importing the new ones — let the import upsert by primary key. Wiping the table loses history that other RPCs depend on.</li>
-            <li>If you must wipe and reload, do it off-hours — the system is briefly unable to look up old prices during that window.</li>
-            <li>Files larger than ~100 MB may need to be uploaded via the Supabase CLI rather than the dashboard. Ask the developer.</li>
-          </ul>
         </div>
       </div>
 
@@ -951,6 +944,69 @@ function renderReferenceData(){
 function bindReferenceDataEvents(){
   const r = document.getElementById('refRefreshBtn');
   if (r) r.onclick = loadReferenceStatus;
+  // Wire wipe buttons on the status cards
+  document.querySelectorAll('[data-wipe]').forEach(btn => {
+    btn.onclick = () => beginWipe(btn.dataset.wipe, btn.dataset.label);
+  });
+  // Wire log-import buttons (records the CSV filename after a Supabase dashboard import)
+  document.querySelectorAll('[data-log-import]').forEach(btn => {
+    btn.onclick = () => logImport(btn.dataset.logImport, btn.dataset.label);
+  });
+}
+
+async function logImport(table, label){
+  const filename = window.prompt(
+    'Log CSV import for ' + label + '\n\n' +
+    'Enter the filename of the CSV you just imported (e.g. "Info Record Report 06.04.2026.csv"). '+
+    'This is shown on the Reference Data card so the team knows when the data was last refreshed.'
+  );
+  if (filename == null) return;
+  const fn = filename.trim();
+  if (!fn) { alert('Filename cannot be empty.'); return; }
+  try {
+    const res = await authedFetch('/api/reference-data/log-import', {
+      method: 'POST',
+      body: JSON.stringify({ table, filename: fn })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || ('HTTP '+res.status));
+    await loadReferenceStatus();
+  } catch (e) {
+    alert('Could not log import: '+e.message);
+  }
+}
+
+// ── REFERENCE-DATA WIPE FLOW ──
+// Two-step confirmation: typed phrase prevents fat-finger; backend re-checks.
+// Designed for quarterly Info Records refresh + yearly PORV refresh.
+async function beginWipe(table, label){
+  const phrase = table === 'info_records_csv' ? 'WIPE INFO_RECORDS'
+              : table === 'porv_data_csv'    ? 'WIPE PORV_DATA' : null;
+  if (!phrase) { alert('Unknown table.'); return; }
+  const current = state.refData?.status?.[table === 'info_records_csv' ? 'info_records' : 'porv_data']?.count;
+  const currentTxt = (current != null && current > 0) ? current.toLocaleString('en-IN') : '?';
+  const typed = window.prompt(
+    'DESTRUCTIVE ACTION\n\n' +
+    'You are about to delete ALL '+currentTxt+' rows from ' + label + ' (' + table + ').\n\n' +
+    'After wiping, you must re-import the CSV via the Supabase dashboard. The portal will be unable to look up '+
+    (table==='info_records_csv'?'old prices':'order quantities')+' until you do.\n\n' +
+    'To proceed, type exactly:\n\n' + phrase
+  );
+  if (typed == null) return; // cancelled
+  if (typed.trim() !== phrase) { alert('Confirmation phrase did not match. Nothing was deleted.'); return; }
+
+  try {
+    const res = await authedFetch('/api/reference-data/wipe', {
+      method: 'POST',
+      body: JSON.stringify({ table, confirm: phrase })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || ('HTTP '+res.status));
+    alert('✓ Wiped '+(json.rows_deleted!=null?json.rows_deleted.toLocaleString('en-IN'):'')+' rows from '+label+'.\n\nNext step: open Supabase → Table Editor → '+table+' → Import data from CSV.');
+    await loadReferenceStatus();
+  } catch (e) {
+    alert('Wipe failed: '+e.message);
+  }
 }
 
 function renderPage(){return{setup:renderSetup,upload:renderUpload,review:renderReview,signers:renderSigners,send:renderSend,tracker:renderTracker,done:renderDone}[state.page]();}
@@ -1159,6 +1215,19 @@ function renderPDFPage1(){
     <div class="pdf-row"><b>Supplier</b><span>${state.items[0]?.vendor_code} — ${state.items[0]?.vendor_name}</span></div>
     <div class="pdf-row"><b>Details of Change</b><span>${state.detailsOfChange||"NEW ITEMS"}</span></div>
     <div class="pdf-row"><b>Product Line Impacted</b><span>${state.productLine||"All"}</span></div>
+    ${(()=>{
+      // Show currency-conversion lines ONLY for currencies where user has changed defaults (>1).
+      // Mirrors the "Product Line Impacted" row styling. Hidden by default for INR-only forms.
+      const rows = [];
+      Object.entries(state.fxRates||{}).forEach(([curr,fx])=>{
+        const cf = parseFloat(fx.conversionFactor)||1;
+        const ef = parseFloat(fx.exchangeFactor)||1;
+        if (cf > 1 || ef > 1) {
+          rows.push(`<div class="pdf-row"><b>FX ${curr} → INR</b><span>Conversion Factor: ${cf} &nbsp;·&nbsp; Exchange Factor: ${ef} &nbsp;·&nbsp; Effective: ₹${(cf*ef).toFixed(4)}</span></div>`);
+        }
+      });
+      return rows.join('');
+    })()}
     <div style="display:flex;gap:22px;font-size:.72rem;margin:7px 0;flex-wrap:wrap;"><div><b>Cost Impact per Lift:</b> ${fmt(d2.reduce((a,i)=>a+i.priceDiff,0))}</div><div><b>Quarterly Impact (Approx):</b> <span style="color:#c0392b;font-weight:700">${fmt(t.quarterlyImpact)}</span> INR</div></div>
     <div class="pdf-section-title">Cost Impact Analysis</div>
     <table class="pdf-tbl"><thead><tr><th>Old Item Code</th><th>Old Desc</th><th>New Item Code</th><th>New Desc</th><th>Old Price</th><th>New Price</th><th>Delta</th><th>Qty/Lift</th><th>Impact/Lift</th></tr></thead><tbody>
@@ -1343,7 +1412,6 @@ function renderDone(){
     </div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="resetAll()">🔄 Start New Approval</button>
-      <button class="btn btn-ghost" onclick="state.page='forms-list';render();loadMyForms()">📋 View Forms Created</button>
     </div>
   </div>`;
 }
@@ -1638,6 +1706,14 @@ async function downloadPDF(){
       'Details of Change '+(state.detailsOfChange||'NEW ITEMS'),
       'Product Line Impacted '+(state.productLine||'All'),
       'COST IMPACT ANALYSIS'];
+    // FX rows in hidden text layer — only when factors differ from defaults
+    Object.entries(state.fxRates||{}).forEach(([curr,fx])=>{
+      const cf = parseFloat(fx.conversionFactor)||1;
+      const ef = parseFloat(fx.exchangeFactor)||1;
+      if (cf > 1 || ef > 1) {
+        p1.splice(p1.length-1, 0, 'FX '+curr+' to INR: ConversionFactor='+cf+' ExchangeFactor='+ef+' Effective='+(cf*ef).toFixed(4));
+      }
+    });
     items.forEach(it=>{p1.push((it.item_code||'')+' '+(it.item_description||'')+' '+(it.old_price||it.oldPrice||0)+' '+(it.new_price||it.newPrice||0)+' '+(it.price_diff||it.priceDiff||0)+' 1 '+(it.price_diff||it.priceDiff||0))});
     pdf.text(p1.join('\n'),1,1);
     if(pdf.getNumberOfPages()>=2){
