@@ -178,6 +178,12 @@ td input[type=number]:focus{outline:none;border-color:var(--accent);}
 .pdf-page .pdf-chk.on{color:#fff !important;}
 .pdf-page td[style*="#c0392b"],.pdf-page span[style*="#c0392b"]{color:#c0392b !important;}
 .pdf-page td[style*="#27ae60"],.pdf-page span[style*="#27ae60"]{color:#27ae60 !important;}
+
+/* Spinner used during async loads (Reference Data, etc.) */
+@keyframes ref-spin { to { transform: rotate(360deg); } }
+.ref-spinner { display:inline-block; width:1em; height:1em; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation: ref-spin 0.8s linear infinite; vertical-align:-2px; }
+.ref-spinner-sm { width:.85em; height:.85em; border-width:1.5px; }
+.btn[disabled]{opacity:.7;cursor:wait;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
 function renderTracker(){
@@ -819,12 +825,16 @@ function renderReferenceData(){
 
         <div style="display:flex;gap:28px;align-items:baseline;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
           <div>
-            <div style="font-size:1.55rem;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;">
-              ${state.refData.loading?'…':(opts.count!=null?opts.count.toLocaleString('en-IN'):'—')}
+            <div style="font-size:1.55rem;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;min-height:1.55rem;display:flex;align-items:center;">
+              ${state.refData.loading
+                ? '<span class="ref-spinner" style="color:var(--accent);"></span>'
+                : (opts.count!=null?opts.count.toLocaleString('en-IN'):'—')}
             </div>
             <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Rows</div>
           </div>
-          ${opts.latest ? `
+          ${state.refData.loading
+            ? `<div><div style="font-size:.92rem;color:var(--muted);"><span class="ref-spinner ref-spinner-sm" style="color:var(--accent);"></span></div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Loading…</div></div>`
+            : opts.latest ? `
           <div>
             <div style="font-size:.92rem;font-weight:500;">${opts.latest}</div>
             <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;">Latest "Valid to"</div>
@@ -868,7 +878,11 @@ function renderReferenceData(){
       <div class="topbar-left"><h2>Reference Data</h2><span>SAP price &amp; quantity sources</span></div>
       <div class="topbar-right">
         ${state.authUser?'<span class="dim" style="font-size:.85rem;">'+state.authUser.name+'</span>':''}
-        <button id="refRefreshBtn" class="btn btn-ghost btn-sm" style="font-size:.78rem;padding:5px 12px;">↻ Refresh</button>
+        <button id="refRefreshBtn" class="btn btn-ghost btn-sm" style="font-size:.78rem;padding:5px 12px;" ${state.refData.loading?'disabled':''}>
+          ${state.refData.loading
+            ? '<span class="ref-spinner ref-spinner-sm" style="color:var(--accent);margin-right:6px;"></span>Loading…'
+            : '↻ Refresh'}
+        </button>
       </div>
     </div>
     <div class="content" style="padding:24px;max-width:1100px;">
